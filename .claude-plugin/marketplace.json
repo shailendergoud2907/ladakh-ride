@@ -1,0 +1,5 @@
+{
+  "name": "ladakh-ride-mods",
+  "owner": { "name": "Shail" },
+  "plugins": [{ "name": "ladakh-ride", "source": "./" }]
+}

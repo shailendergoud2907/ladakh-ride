@@ -1,0 +1,6 @@
+{
+  "name": "ladakh-ride",
+  "version": "0.1.1",
+  "description": "A Ladakh road trip above the prompt: a Royal Enfield rides from Leh to Khardung La as the context window fills.",
+  "types": "./types/index.d.ts"
+}
