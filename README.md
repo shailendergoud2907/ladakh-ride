@@ -1,0 +1,26 @@
+# ladakh-ride
+
+A Ladakh road trip above the Claude prompt. A Royal Enfield rides from Leh to
+Khardung La as your conversation's context window fills up.
+
+- Snow peaks, a Pangong Tso lake, prayer flags, a stupa at Leh and 25/50/75% milestones.
+- Caption shows percent of context used, tokens used out of the window, a flavour-only altitude, and your 5-hour limit when your account reports one.
+- Toasts at 75% and 90% full.
+- `/ride` hides or shows it. Terminals that cannot draw images get a text track instead.
+
+## Install
+
+Type this at the prompt of a terminal Claude Code session:
+
+```
+/plugin install ladakh-ride --marketplace shailendergoud2907/ladakh-ride
+```
+
+Answer `y` to add the marketplace, then pick the user scope.
+
+## Develop
+
+```
+claude plugin validate .
+claude plugin test .
+```
