@@ -144,7 +144,7 @@ const bike = (o: { spin: boolean; rider: boolean }) => {
     `<circle cx="-7" cy="-51" r="2.8" fill="#ffb347" stroke="${INK}" stroke-width="1"/>` +
     // rack and duffel
     `<line x1="-14" y1="-58" x2="34" y2="-58" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>` +
-    `<rect x="-18" y="-90" width="58" height="32" rx="11" fill="#26334a" stroke="${INK}" stroke-width="2.4"/>` +
+    `<rect x="-18" y="-90" width="58" height="32" rx="11" fill="#1c2a42" stroke="${INK}" stroke-width="2.4"/>` +
     `<path d="M-9 -84 H32" stroke="#41547a" stroke-width="2.6" stroke-linecap="round"/>` +
     `<path d="M-2 -90 V-58 M26 -90 V-58" stroke="#a9743a" stroke-width="3.8"/>` +
     `<rect x="-5" y="-76" width="6" height="5" rx="1" fill="#d9b45a" stroke="${INK}" stroke-width="0.8"/>` +
@@ -154,9 +154,9 @@ const bike = (o: { spin: boolean; rider: boolean }) => {
     `<line x1="98" y1="-78" x2="88" y2="-20" stroke="#c4cad3" stroke-width="4" stroke-linecap="round"/>` +
     `<line x1="92" y1="-50" x2="88" y2="-24" stroke="${INK}" stroke-width="6.5" stroke-linecap="round"/>` +
     `<path d="M70 -38 Q88 -52 112 -34" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>` +
-    `<path d="M70 -38 Q88 -52 112 -34" fill="none" stroke="#2f4a7a" stroke-width="4" stroke-linecap="round"/>` +
+    `<path d="M70 -38 Q88 -52 112 -34" fill="none" stroke="#1f3a62" stroke-width="4" stroke-linecap="round"/>` +
     // tank and side plates
-    `<path d="M38 -82 Q64 -98 98 -78 Q102 -62 90 -56 L46 -56 Q32 -64 38 -82 Z" fill="#2f4a7a" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>` +
+    `<path d="M38 -82 Q64 -98 98 -78 Q102 -62 90 -56 L46 -56 Q32 -64 38 -82 Z" fill="#1f3a62" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>` +
     `<path d="M44 -82 Q62 -92 88 -80" fill="none" stroke="#7da0d8" stroke-width="2.8" stroke-linecap="round"/>` +
     `<path d="M46 -70 Q66 -78 92 -68 L88 -60 L50 -60 Z" fill="#c4cad3" stroke="${INK}" stroke-width="1.6"/>` +
     `<circle cx="64" cy="-90" r="3.4" fill="#59606d" stroke="${INK}" stroke-width="1.2"/>` +
@@ -238,63 +238,45 @@ const dust = (x: number) =>
   [0, 1, 2]
     .map(
       i =>
-        `<circle cx="${x}" cy="-4" r="${3 + i}" fill="#e8d5b5" opacity="0">` +
+        `<circle cx="${x}" cy="-4" r="${3 + i}" fill="#cfc3ad" opacity="0">` +
         `<animate attributeName="cx" values="${x};${x - 36 - i * 8}" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/>` +
         `<animate attributeName="cy" values="-4;${-12 - i * 4}" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/>` +
-        `<animate attributeName="opacity" values="0.7;0" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/></circle>`,
+        `<animate attributeName="opacity" values="0.6;0" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/></circle>`,
     )
     .join('')
 
-const road = (y: number, w: number, dashW: number) =>
-  `<rect x="-10" y="${y - w / 2 - 3}" width="${W + 20}" height="${w + 6}" fill="#4a3a2c"/>` +
-  `<rect x="-10" y="${y - w / 2}" width="${W + 20}" height="${w}" fill="#3a3a40"/>` +
-  `<line x1="-40" y1="${y}" x2="${W + 40}" y2="${y}" stroke="#f2d36b" stroke-width="${dashW}" stroke-dasharray="18 14">` +
-  `<animate attributeName="stroke-dashoffset" from="0" to="32" dur="0.5s" repeatCount="indefinite"/></line>`
+const ground = (y: number, w: number) =>
+  `<line x1="-40" y1="${y}" x2="${W + 40}" y2="${y}" stroke="#8a7d6a" stroke-width="1.5" opacity="0.6"/>` +
+  `<line x1="-40" y1="${y + 7}" x2="${W + 40}" y2="${y + 7}" stroke="#d9a441" stroke-width="${w}" stroke-dasharray="16 14" opacity="0.8">` +
+  `<animate attributeName="stroke-dashoffset" from="0" to="30" dur="0.5s" repeatCount="indefinite"/></line>`
 
-// Compact band above the prompt box. The bike rides in place (road scrolls, wheels spin, body bobs)
-// and its position along the road shows context used.
+// Just the bike, on a thin moving road line. Position along the road = context used.
 const scene = (percent: number) => {
   const p = clamp(percent)
-  const bx = 70 + (p / 100) * (END_X - 70 - 90)
-  const dusk = (p / 100) * 0.3
+  const bx = 70 + (p / 100) * (END_X - 70 - 100)
 
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="120" viewBox="0 0 ${W} 120">` +
-    sky(p) +
-    `<g transform="translate(0 3) scale(1 0.6)">` + mountains(112) + `</g>` +
-    `<rect width="${W}" height="120" fill="#e0663a" opacity="${dusk.toFixed(2)}"/>` +
-    `<rect y="68" width="${W}" height="52" fill="#6b5240"/>` +
-    road(100, 26, 2) +
-    `<path d="M0 20 Q360 42 720 22" fill="none" stroke="#3b2f25" stroke-width="1"/>` +
-    flags(15, 40).replace(/translate\(([\d.]+) ([\d.]+)\)/g, (_m, x, y) => `translate(${x} ${(+y * 0.55 + 4).toFixed(1)})`) +
-    label(START_X, 116, 8, 'middle', 'LEH') +
-    label(END_X, 116, 8, 'end', 'KHARDUNG LA') +
-    `<g transform="translate(${bx.toFixed(1)} 104) scale(0.62)">` +
-    `<ellipse cx="50" cy="1" rx="66" ry="4" fill="#000" opacity="0.3"/>` +
-    `<g>${bob(1.6, 0.4)}` + bike({ spin: true, rider: true }) + dust(-18) + `</g>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="84" viewBox="0 0 ${W} 84">` +
+    `<defs><linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff3a8" stop-opacity="0.45"/><stop offset="1" stop-color="#fff3a8" stop-opacity="0"/></linearGradient></defs>` +
+    ground(70, 2) +
+    `<g transform="translate(${bx.toFixed(1)} 70) scale(0.55)">` +
+    `<ellipse cx="50" cy="1" rx="66" ry="4" fill="#000" opacity="0.25"/>` +
+    `<g>${bob(1.6, 0.4)}` + bike({ spin: true, rider: false }) + dust(-18) + `</g>` +
     `</g>` +
     `</svg>`
   )
 }
 
-// The welcome view: bigger, the bike rides across the whole width on a loop.
+// New-chat view: a bigger bike riding across the width on a loop.
 const starter = () =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="230" viewBox="0 0 ${W} 230">` +
-  sky(0) +
-  `<g transform="translate(0 6)">` + mountains(150) + `</g>` +
-  `<path d="M0 156 Q80 138 170 148 T330 144 T500 150 T720 142 L720 230 L0 230 Z" fill="#b08660"/>` +
-  `<rect y="170" width="${W}" height="60" fill="#6b5240"/>` +
-  road(196, 44, 3) +
-  `<g transform="translate(640 160) scale(1.4) translate(-640 -160)">` + stupa(640, 160) + `</g>` +
-  `<path d="M0 10 Q360 52 720 14" fill="none" stroke="#3b2f25" stroke-width="1.2"/>` +
-  flags(20, 52) +
-  `<g><animateTransform attributeName="transform" type="translate" from="-230 0" to="760 0" dur="9s" repeatCount="indefinite"/>` +
-  `<g transform="translate(0 206) scale(1.15)">` +
-  `<ellipse cx="50" cy="1" rx="70" ry="5" fill="#000" opacity="0.3"/>` +
-  `<g>${bob(2, 0.4)}` + bike({ spin: true, rider: true }) + dust(-18) + `</g>` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="150" viewBox="0 0 ${W} 150">` +
+  `<defs><linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff3a8" stop-opacity="0.45"/><stop offset="1" stop-color="#fff3a8" stop-opacity="0"/></linearGradient></defs>` +
+  ground(130, 3) +
+  `<g><animateTransform attributeName="transform" type="translate" from="-220 0" to="760 0" dur="8s" repeatCount="indefinite"/>` +
+  `<g transform="translate(0 130) scale(0.9)">` +
+  `<ellipse cx="50" cy="1" rx="70" ry="5" fill="#000" opacity="0.25"/>` +
+  `<g>${bob(2, 0.4)}` + bike({ spin: true, rider: false }) + dust(-18) + `</g>` +
   `</g></g>` +
-  label(14, 224, 10, 'start', 'LEH 3,500 m') +
-  label(706, 224, 10, 'end', 'KHARDUNG LA 5,359 m') +
   `</svg>`
 
 
