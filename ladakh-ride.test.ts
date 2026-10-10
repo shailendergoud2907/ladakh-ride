@@ -36,7 +36,8 @@ for (const surface of ['terminal', 'desktop'] as const) {
 test('waits at Leh before any usage and hides on press', async ($, on) => {
   on('ui.render', () => NOTHING)
   const ui = await $.ui.mount({ plugin: 'ladakh-ride', surface: 'desktop', component: 'AbovePrompt', props })
-  expect(JSON.stringify(await ui.drawn())).toContain('Waiting at Leh')
+  expect(JSON.stringify(await ui.drawn())).toContain('Parked at Leh')
+  expect(JSON.stringify(await ui.drawn())).toContain('parked on a mountain road')
   await ui.press({ key: 'hide' })
   expect(await ui.find({ type: 'Svg' })).toBeUndefined()
 })
