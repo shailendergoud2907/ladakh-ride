@@ -1,10 +1,53 @@
 {
   "name": "ladakh-ride-mods",
-  "owner": { "name": "Shail" },
+  "owner": {
+    "name": "Shail"
+  },
   "plugins": [
-    { "name": "ladakh-ride", "source": "./", "description": "Pixel motorcycle above the prompt box that rides as context fills." },
-    { "name": "ride-status", "source": "./mods/ride-status", "description": "Status line: context used as altitude from Leh to Khardung La." },
-    { "name": "focus-timer", "source": "./mods/focus-timer", "description": "/focus 25 starts a focus timer with a toast at the end." },
-    { "name": "safe-ride", "source": "./mods/safe-ride", "description": "Blocks rm -rf on home or root, plain force-push and hard reset." }
+    {
+      "name": "ladakh-ride",
+      "source": "./",
+      "description": "Pixel motorcycle above the prompt box that rides as context fills."
+    },
+    {
+      "name": "ride-status",
+      "source": "./mods/ride-status",
+      "description": "Status line: context used as altitude from Leh to Khardung La."
+    },
+    {
+      "name": "focus-timer",
+      "source": "./mods/focus-timer",
+      "description": "/focus 25 starts a focus timer with a toast at the end."
+    },
+    {
+      "name": "safe-ride",
+      "source": "./mods/safe-ride",
+      "description": "Blocks rm -rf on home or root, plain force-push and hard reset."
+    },
+    {
+      "name": "tool-log",
+      "source": "./mods/tool-log",
+      "description": "Side panel listing the tool calls of this session (/tool-log)."
+    },
+    {
+      "name": "done-chime",
+      "source": "./mods/done-chime",
+      "description": "Chime and toast when a turn that took 30 s or more finishes."
+    },
+    {
+      "name": "limit-alert",
+      "source": "./mods/limit-alert",
+      "description": "Toast when the 5-hour limit passes 80% and 95%."
+    },
+    {
+      "name": "mba-voice",
+      "source": "./mods/mba-voice",
+      "description": "Adds a short working-style note to the system prompt."
+    },
+    {
+      "name": "ladakh-tips",
+      "source": "./mods/ladakh-tips",
+      "description": "/ladakh prints a general Ladakh riding tip."
+    }
   ]
 }

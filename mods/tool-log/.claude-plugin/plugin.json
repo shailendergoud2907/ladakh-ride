@@ -1,0 +1,1 @@
+{ "name": "tool-log", "version": "0.1.0", "description": "Side panel listing the tool calls of this session. Open it with /tool-log.", "types": "./types/index.d.ts" }
