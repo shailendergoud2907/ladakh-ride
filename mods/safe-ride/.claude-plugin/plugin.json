@@ -1,0 +1,1 @@
+{ "name": "safe-ride", "version": "0.1.0", "description": "Blocks a few destructive shell commands (rm -rf on home or root, force-push, hard reset) before they run." }
