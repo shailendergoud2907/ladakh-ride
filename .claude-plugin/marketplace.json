@@ -7,17 +7,12 @@
     {
       "name": "ladakh-ride",
       "source": "./",
-      "description": "Pixel motorcycle above the prompt box that rides as context fills."
+      "description": "Pixel motorcycle band above the prompt with context, 5-hour limit and /focus timer."
     },
     {
       "name": "ride-status",
       "source": "./mods/ride-status",
       "description": "Status line: context used as altitude from Leh to Khardung La."
-    },
-    {
-      "name": "focus-timer",
-      "source": "./mods/focus-timer",
-      "description": "/focus 25 starts a focus timer with a toast at the end."
     },
     {
       "name": "safe-ride",
@@ -48,6 +43,16 @@
       "name": "ladakh-tips",
       "source": "./mods/ladakh-tips",
       "description": "/ladakh prints a general Ladakh riding tip."
+    },
+    {
+      "name": "ladakh-theme",
+      "source": "./mods/ladakh-theme",
+      "description": "Ladakh Dusk (dark) and Ladakh Glacier (light) colour themes."
+    },
+    {
+      "name": "mba-shortcuts",
+      "source": "./mods/mba-shortcuts",
+      "description": "Slash commands: case, pitch, redteam, memo."
     }
   ]
 }

@@ -5,6 +5,7 @@ import type { Ride } from '../types'
 
 const ride = atom({ plugin: 'ladakh-ride', key: 'ride' } as const, null)
 const isHidden = atom({ plugin: 'ladakh-ride', key: 'isHidden' } as const, false)
+const focusLeft = atom({ plugin: 'ladakh-ride', key: 'focusLeft' } as const, null)
 
 const LEH_M = 3500
 const KHARDUNG_LA_M = 5359
@@ -297,6 +298,10 @@ export const register: Register = on => {
       name: 'ride',
       description: 'Show or hide the Ladakh ride above the prompt',
     })
+    await $.command.register({
+      name: 'focus',
+      description: '/focus 25 starts a focus timer shown in the ride band, /focus stop cancels it',
+    })
 
     try {
       const usage = await $.session.usage()
@@ -306,6 +311,46 @@ export const register: Register = on => {
     }
 
     return next(e)
+  })
+
+  let tick: { cancel: () => void } | null = null
+  let done: { cancel: () => void } | null = null
+  const stopFocus = () => {
+    tick?.cancel()
+    done?.cancel()
+    tick = null
+    done = null
+  }
+
+  on('command.run', { command: 'focus' }, async ($, e) => {
+    const arg = e.args.trim().toLowerCase()
+    if (arg === 'stop') {
+      stopFocus()
+      await update($, focusLeft, () => null)
+
+      return { text: 'Focus timer stopped.' }
+    }
+
+    const minutes = arg === '' ? 25 : Number(arg)
+    if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) {
+      return { text: 'Use /focus 25 (minutes, 1 to 240) or /focus stop.' }
+    }
+
+    stopFocus()
+    const endsAt = (await $.clock.now()) + minutes * 60_000
+    const show = async () => {
+      const left = Math.max(0, Math.ceil((endsAt - (await $.clock.now())) / 60_000))
+      await update($, focusLeft, () => left)
+    }
+    await show()
+    tick = $.clock.every(30_000, () => void show())
+    done = $.clock.after(minutes * 60_000, () => {
+      stopFocus()
+      void update($, focusLeft, () => null)
+      void $.ui.toast(`Focus block done (${minutes} min). Take a break.`, { timeoutMs: 15_000 })
+    })
+
+    return { text: `Focus timer set for ${minutes} min. It shows in the ride band.` }
   })
 
   on('command.run', { command: 'ride' }, async $ => {
@@ -340,6 +385,7 @@ export const register: Register = on => {
     }
 
     const state = await read($, ride)
+    const focus = await read($, focusLeft)
     const isFresh = state === null || state.tokens === 0
     const percent = state?.percent ?? 0
     const altitude = LEH_M + (percent / 100) * (KHARDUNG_LA_M - LEH_M)
@@ -350,6 +396,7 @@ export const register: Register = on => {
       ? 'Parked at Leh. Send a message and the ride begins.'
       : `Leh to Khardung La: ${percent}% of context used (${fmtK(state.tokens)} of ${fmtK(state.window)} tokens), about ${fmtInt(altitude)} m up` +
         (state.fiveHour === null ? '' : `. 5-hour limit ${Math.round(state.fiveHour)}%`)
+    const line = focus === null ? caption : `${caption}. Focus: ${focus} min left`
 
     const picture =
       'Svg' in ui ? (
@@ -373,7 +420,7 @@ export const register: Register = on => {
       <Box flexDirection="column">
         {picture}
         <Box>
-          <Text dimColor>{caption} </Text>
+          <Text dimColor>{line} </Text>
           <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
         </Box>
       </Box>

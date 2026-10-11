@@ -7,6 +7,6 @@ export type Ride = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'ladakh-ride': { ride: Ride | null; isHidden: boolean }
+    'ladakh-ride': { ride: Ride | null; isHidden: boolean; focusLeft: number | null }
   }
 }

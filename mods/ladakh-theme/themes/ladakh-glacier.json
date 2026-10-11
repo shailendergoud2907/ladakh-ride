@@ -1,0 +1,20 @@
+{
+  "name": "Ladakh Glacier",
+  "base": "light",
+  "overrides": {
+    "claude": "#c4552b",
+    "promptBorder": "#a9741a",
+    "permission": "#1b86a3",
+    "suggestion": "#2f5fa8",
+    "planMode": "#1b86a3",
+    "success": "#2f7d4a",
+    "error": "#b8372e",
+    "warning": "#b07a0a",
+    "userMessageBackground": "#f1e6d2",
+    "selectionBg": "#e6d2b0",
+    "rate_limit_fill": "#c4552b",
+    "rate_limit_empty": "#e2d7c3",
+    "briefLabelYou": "#a9741a",
+    "briefLabelClaude": "#c4552b"
+  }
+}

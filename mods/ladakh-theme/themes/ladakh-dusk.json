@@ -1,0 +1,28 @@
+{
+  "name": "Ladakh Dusk",
+  "base": "dark",
+  "overrides": {
+    "claude": "#ee8a55",
+    "claudeShimmer": "#f6b184",
+    "promptBorder": "#d9a441",
+    "promptBorderShimmer": "#efc76a",
+    "permission": "#5ec8d8",
+    "permissionShimmer": "#92e0ec",
+    "suggestion": "#8fbce6",
+    "planMode": "#5ec8d8",
+    "autoAccept": "#7cc47f",
+    "success": "#7cc47f",
+    "error": "#e5594f",
+    "warning": "#f2c230",
+    "diffAdded": "#1f4d2e",
+    "diffRemoved": "#5a2430",
+    "diffAddedWord": "#2f7a47",
+    "diffRemovedWord": "#8a3a48",
+    "userMessageBackground": "#2a2230",
+    "selectionBg": "#4a3b52",
+    "rate_limit_fill": "#ee8a55",
+    "rate_limit_empty": "#3a3340",
+    "briefLabelYou": "#f2c230",
+    "briefLabelClaude": "#ee8a55"
+  }
+}
