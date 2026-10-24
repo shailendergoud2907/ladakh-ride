@@ -37,358 +37,197 @@ const W = 720
 const START_X = 44
 const END_X = 676
 const clamp = (n: number) => Math.max(0, Math.min(100, n))
-const roadY = (x: number) => 142 - 7 * Math.sin((x / W) * Math.PI * 3)
 
-const roadPath = (from: number, to: number) => {
-  const pts: string[] = []
-  for (let x = from; x <= to; x += 8) {
-    pts.push(`${pts.length === 0 ? 'M' : 'L'}${x} ${roadY(x).toFixed(1)}`)
-  }
-  pts.push(`L${to} ${roadY(to).toFixed(1)}`)
+type Mood = 'idle' | 'working' | 'happy'
 
-  return pts.join(' ')
-}
+const GREEN = '#2f6b45'
+const GREEN_HI = '#5aa174'
+const CHROME = '#d5dae2'
+const SKIN = '#f1c9a0'
 
-const flags = (n: number, sag: number) => {
-  const colors = ['#2f6fd0', '#f4f4f4', '#d6403a', '#2f9e5a', '#f2c230']
-  const out: string[] = []
-  for (let i = 0; i < n; i++) {
-    const t = 0.03 + (i * 0.94) / n
-    const x = 2 * (1 - t) * t * 360 + t * t * W
-    const y = (1 - t) * (1 - t) * 8 + 2 * (1 - t) * t * sag + t * t * 10
-    const dur = (2 + (i % 3) * 0.45).toFixed(2)
-    out.push(
-      `<g transform="translate(${x.toFixed(1)} ${y.toFixed(1)})"><g>` +
-        `<animateTransform attributeName="transform" type="skewX" values="0;-7;0;6;0" dur="${dur}s" repeatCount="indefinite"/>` +
-        `<polygon points="0,0 11,0 5.5,15" fill="${colors[i % 5]}" stroke="${INK}" stroke-width="0.4"/></g></g>`,
-    )
-  }
-
-  return out.join('')
-}
-
-// A solid side-view adventure motorcycle, facing right, ground at y=0.
-// About 160 wide and 125 tall with the rider.
-const bike = (o: { spin: boolean; rider: boolean; part?: 'all' | 'body' | 'wheels'; rot?: number }) => {
-  const wheel = (cx: number, r: number) => {
-    const cy = -r
+// A chibi rider on a classic green roadster, facing right, tyres on y=0. About 150 wide, 135 tall.
+const rider = (mood: Mood, isRolling: boolean) => {
+  const wheel = (cx: number) => {
+    const cy = -24
     let spokes = ''
-    for (let a = o.rot ?? 0; a < 180 + (o.rot ?? 0); a += 18) {
+    for (let a = 0; a < 180; a += 20) {
       const t = (a * Math.PI) / 180
-      const dx = Math.cos(t) * (r - 5)
-      const dy = Math.sin(t) * (r - 5)
-      spokes += `<line x1="${(cx - dx).toFixed(1)}" y1="${(cy - dy).toFixed(1)}" x2="${(cx + dx).toFixed(1)}" y2="${(cy + dy).toFixed(1)}" stroke="#7b8391" stroke-width="0.9"/>`
+      spokes += `<line x1="${(cx - Math.cos(t) * 17).toFixed(1)}" y1="${(cy - Math.sin(t) * 17).toFixed(1)}" x2="${(cx + Math.cos(t) * 17).toFixed(1)}" y2="${(cy + Math.sin(t) * 17).toFixed(1)}" stroke="#8a93a2" stroke-width="1.2"/>`
     }
-    const spin = o.spin
-      ? `<animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="0.5s" repeatCount="indefinite"/>`
+    const spin = isRolling
+      ? `<animateTransform attributeName="transform" type="rotate" from="0 ${cx} ${cy}" to="360 ${cx} ${cy}" dur="0.45s" repeatCount="indefinite"/>`
       : ''
 
     return (
-      `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${o.part ? '#2d3340' : '#e9e4d8'}" fill-opacity="${o.part ? 1 : 0.35}" stroke="${INK}" stroke-width="6"/>` +
-      `<circle cx="${cx}" cy="${cy}" r="${r - 5}" fill="none" stroke="#b4bcc8" stroke-width="2"/>` +
-      `<g>${spin}${spokes}<circle cx="${cx + r - 8}" cy="${cy}" r="1.6" fill="${INK}"/></g>` +
-      `<circle cx="${cx}" cy="${cy}" r="8" fill="none" stroke="#6f7886" stroke-width="1.4"/>` +
-      `<circle cx="${cx}" cy="${cy}" r="3.6" fill="#c4cad3" stroke="${INK}" stroke-width="1.2"/>`
+      `<circle cx="${cx}" cy="${cy}" r="24" fill="#23262e" stroke="${INK}" stroke-width="3"/>` +
+      `<circle cx="${cx}" cy="${cy}" r="18" fill="#f3f4f7" stroke="${CHROME}" stroke-width="2.4"/>` +
+      `<g>${spin}${spokes}<circle cx="${cx + 14}" cy="${cy}" r="1.8" fill="${INK}"/></g>` +
+      `<circle cx="${cx}" cy="${cy}" r="5" fill="${CHROME}" stroke="${INK}" stroke-width="1.6"/>`
     )
   }
 
-  const rider = o.rider
-    ? `<path d="M22 -62 L56 -52 L58 -26" fill="none" stroke="${INK}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<path d="M22 -62 L56 -52 L58 -26" fill="none" stroke="#3a4a6a" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<rect x="53" y="-29" width="17" height="7" rx="3" fill="${INK}"/>` +
-      `<path d="M22 -64 L50 -102" fill="none" stroke="${INK}" stroke-width="17" stroke-linecap="round"/>` +
-      `<path d="M22 -64 L50 -102" fill="none" stroke="#c85a2b" stroke-width="14" stroke-linecap="round"/>` +
-      `<path d="M31 -70 L40 -84" fill="none" stroke="#e07a45" stroke-width="3.4" stroke-linecap="round"/>` +
-      `<path d="M52 -100 L100 -88 L109 -87" fill="none" stroke="${INK}" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<path d="M52 -100 L100 -88 L109 -87" fill="none" stroke="#c85a2b" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>` +
-      `<circle cx="110" cy="-87" r="4" fill="${INK}"/>` +
-      `<circle cx="57" cy="-116" r="11" fill="#2a9d8f" stroke="${INK}" stroke-width="2.2"/>` +
-      `<path d="M61 -121 Q70 -119 68 -110 L60 -110 Z" fill="${INK}"/>` +
-      `<path d="M50 -112 Q32 -110 18 -98" fill="none" stroke="#e3563f" stroke-width="4.4" stroke-linecap="round">` +
-      (o.spin
-        ? `<animate attributeName="d" values="M50 -112 Q32 -110 18 -98;M50 -112 Q32 -120 14 -110;M50 -112 Q32 -110 18 -98" dur="0.6s" repeatCount="indefinite"/>`
-        : '') +
-      `</path>`
-    : ''
+  const eyes =
+    mood === 'happy'
+      ? `<path d="M30 -100 q3.6 -5 7.2 0 M42 -100 q3.6 -5 7.2 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
+      : mood === 'working'
+        ? `<ellipse cx="34" cy="-99" rx="3" ry="2.4" fill="${INK}"/><ellipse cx="46" cy="-99" rx="3" ry="2.4" fill="${INK}"/>` +
+          `<path d="M29 -105 l9 2 M51 -105 l-9 2" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>`
+        : `<ellipse cx="34" cy="-99" rx="3.2" ry="4" fill="${INK}"><animate attributeName="ry" values="4;4;0.5;4;4" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
+          `<ellipse cx="46" cy="-99" rx="3.2" ry="4" fill="${INK}"><animate attributeName="ry" values="4;4;0.5;4;4" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
+          `<circle cx="35" cy="-100.6" r="1.2" fill="#fff"/><circle cx="47" cy="-100.6" r="1.2" fill="#fff"/>`
 
-  if (o.part === 'wheels') return wheel(0, 18) + wheel(88, 20)
+  const mouth =
+    mood === 'happy'
+      ? `<path d="M33 -90 q7 8 14 0 Z" fill="#a8384a" stroke="${INK}" stroke-width="1.4" stroke-linejoin="round"/>`
+      : `<path d="M35 -90 q5 3.4 10 0" fill="none" stroke="${INK}" stroke-width="1.8" stroke-linecap="round"/>`
 
-  return (
-    // headlight beam
-    (o.part === 'body' ? '' : `<path d="M118 -70 L215 -98 L215 -42 Z" fill="url(#beam)"/>`) +
-    // swingarm, rear shock
-    `<line x1="0" y1="-18" x2="46" y2="-28" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>` +
-    `<line x1="0" y1="-18" x2="46" y2="-28" stroke="#59606d" stroke-width="3.4" stroke-linecap="round"/>` +
-    `<line x1="12" y1="-56" x2="22" y2="-30" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>` +
-    `<line x1="12" y1="-56" x2="22" y2="-30" stroke="#e08a2e" stroke-width="3.6" stroke-linecap="round" stroke-dasharray="2.4 1.5"/>` +
-    (o.part === 'body' ? '' : wheel(0, 18) + wheel(88, 20)) +
+  const body =
+    // exhaust, behind the wheels' front
+    `<path d="M62 -20 Q70 -14 54 -12 L-6 -14" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>` +
+    `<rect x="-16" y="-24" width="52" height="11" rx="5.5" fill="${CHROME}" stroke="${INK}" stroke-width="2.4"/>` +
+    `<path d="M-10 -21 H30" stroke="#fff" stroke-width="2" stroke-linecap="round"/>` +
+    // rear fender, tail light
+    `<path d="M-24 -36 Q0 -62 20 -44" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>` +
+    `<path d="M-24 -36 Q0 -62 20 -44" fill="none" stroke="${GREEN}" stroke-width="5" stroke-linecap="round"/>` +
+    `<circle cx="-24" cy="-37" r="3.2" fill="#d9372e" stroke="${INK}" stroke-width="1.2"/>` +
     // engine
-    `<rect x="40" y="-48" width="34" height="27" rx="5" fill="#3b4150" stroke="${INK}" stroke-width="2.2"/>` +
-    `<path d="M45 -40 H69 M45 -34 H69 M45 -28 H69" stroke="#59606d" stroke-width="1.8"/>` +
-    `<rect x="46" y="-62" width="22" height="15" rx="3" fill="#4b5262" stroke="${INK}" stroke-width="2.2"/>` +
-    `<path d="M49 -57 H65 M49 -52 H65" stroke="#6c7587" stroke-width="1.5"/>` +
-    `<circle cx="54" cy="-28" r="8.5" fill="#5d6677" stroke="${INK}" stroke-width="2"/>` +
-    `<circle cx="54" cy="-28" r="3.4" fill="#8b94a3"/>` +
-    // frame tubes
-    `<path d="M96 -72 L56 -48 M96 -72 L44 -62 M12 -56 L0 -18" fill="none" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>` +
-    // crash guard
-    `<path d="M44 -58 Q30 -40 44 -22 L74 -22" fill="none" stroke="${INK}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>` +
-    `<path d="M44 -58 Q30 -40 44 -22 L74 -22" fill="none" stroke="#cfd5de" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>` +
-    // exhaust
-    `<path d="M66 -20 Q74 -12 62 -10" fill="none" stroke="#9aa2ae" stroke-width="3.6" stroke-linecap="round"/>` +
-    `<rect x="4" y="-18" width="60" height="9" rx="4.5" fill="#d9dde4" stroke="${INK}" stroke-width="2"/>` +
-    `<path d="M10 -15 H58" stroke="#fff" stroke-width="1.5" opacity="0.85" stroke-linecap="round"/>` +
-    `<path d="M40 -18 V-9 M46 -18 V-9" stroke="#8f98a6" stroke-width="1.4"/>` +
-    `<circle cx="5" cy="-13.5" r="4" fill="#2b303c" stroke="${INK}" stroke-width="1.4"/>` +
-    // seat, tail
-    `<path d="M2 -62 Q28 -70 54 -62 L54 -54 L2 -54 Z" fill="#1b1e26" stroke="${INK}" stroke-width="2"/>` +
-    `<rect x="-16" y="-46" width="15" height="10" rx="2" fill="#f6f2e6" stroke="${INK}" stroke-width="1.5"/>` +
-    `<circle cx="-8" cy="-58" r="3.6" fill="#d9372e" stroke="${INK}" stroke-width="1.3"/>` +
-    `<circle cx="-7" cy="-51" r="2.8" fill="#ffb347" stroke="${INK}" stroke-width="1"/>` +
-    // rack and duffel
-    `<line x1="-14" y1="-58" x2="34" y2="-58" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>` +
-    `<rect x="-18" y="-90" width="58" height="32" rx="11" fill="#1c2a42" stroke="${INK}" stroke-width="2.4"/>` +
-    `<path d="M-9 -84 H32" stroke="#41547a" stroke-width="2.6" stroke-linecap="round"/>` +
-    `<path d="M-2 -90 V-58 M26 -90 V-58" stroke="#a9743a" stroke-width="3.8"/>` +
-    `<rect x="-5" y="-76" width="6" height="5" rx="1" fill="#d9b45a" stroke="${INK}" stroke-width="0.8"/>` +
-    `<rect x="23" y="-76" width="6" height="5" rx="1" fill="#d9b45a" stroke="${INK}" stroke-width="0.8"/>` +
-    // fork, beak fender
-    `<line x1="98" y1="-78" x2="88" y2="-20" stroke="${INK}" stroke-width="7.4" stroke-linecap="round"/>` +
-    `<line x1="98" y1="-78" x2="88" y2="-20" stroke="#c4cad3" stroke-width="4" stroke-linecap="round"/>` +
-    `<line x1="92" y1="-50" x2="88" y2="-24" stroke="${INK}" stroke-width="6.5" stroke-linecap="round"/>` +
-    `<path d="M70 -38 Q88 -52 112 -34" fill="none" stroke="${INK}" stroke-width="7" stroke-linecap="round"/>` +
-    `<path d="M70 -38 Q88 -52 112 -34" fill="none" stroke="#1f3a62" stroke-width="4" stroke-linecap="round"/>` +
-    // tank and side plates
-    `<path d="M38 -82 Q64 -98 98 -78 Q102 -62 90 -56 L46 -56 Q32 -64 38 -82 Z" fill="#1f3a62" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>` +
-    `<path d="M44 -82 Q62 -92 88 -80" fill="none" stroke="#7da0d8" stroke-width="2.8" stroke-linecap="round"/>` +
-    `<path d="M46 -70 Q66 -78 92 -68 L88 -60 L50 -60 Z" fill="#c4cad3" stroke="${INK}" stroke-width="1.6"/>` +
-    `<circle cx="64" cy="-90" r="3.4" fill="#59606d" stroke="${INK}" stroke-width="1.2"/>` +
-    rider +
-    // windscreen, mirror, bars, lamp
-    `<path d="M104 -84 Q114 -102 104 -122 Q98 -124 96 -118 Q102 -102 98 -82 Z" fill="#dff4ff" fill-opacity="0.8" stroke="${INK}" stroke-width="2" stroke-linejoin="round"/>` +
-    `<path d="M101 -112 Q104 -102 102 -92" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>` +
-    `<line x1="98" y1="-86" x2="111" y2="-90" stroke="${INK}" stroke-width="4.4" stroke-linecap="round"/>` +
-    `<line x1="104" y1="-88" x2="86" y2="-104" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>` +
-    `<circle cx="82" cy="-108" r="7" fill="#aebdd0" stroke="${INK}" stroke-width="2"/>` +
-    `<circle cx="80" cy="-110" r="2.2" fill="#fff" opacity="0.7"/>` +
-    `<circle cx="116" cy="-72" r="11" fill="#3b4150" stroke="${INK}" stroke-width="2.2"/>` +
-    `<circle cx="118.5" cy="-72" r="8" fill="#f6e58d" stroke="${INK}" stroke-width="1.5"/>` +
-    `<circle cx="120.5" cy="-73.5" r="2.8" fill="#fffbe0"/>` +
-    `<circle cx="110" cy="-60" r="3.2" fill="#ffb347" stroke="${INK}" stroke-width="1.2"/>` +
-    // footpeg
-    `<line x1="48" y1="-20" x2="64" y2="-20" stroke="${INK}" stroke-width="3.6" stroke-linecap="round"/>`
-  )
+    `<rect x="36" y="-46" width="36" height="26" rx="6" fill="#4b5262" stroke="${INK}" stroke-width="2.4"/>` +
+    `<path d="M41 -40 H67 M41 -34 H67 M41 -28 H67" stroke="#8b94a3" stroke-width="2"/>` +
+    `<circle cx="54" cy="-30" r="9" fill="${CHROME}" stroke="${INK}" stroke-width="2.2"/><circle cx="54" cy="-30" r="3.4" fill="#8a93a2"/>` +
+    // seat
+    `<path d="M-6 -52 Q16 -60 40 -52 L40 -44 L-6 -44 Z" fill="#7a4a2a" stroke="${INK}" stroke-width="2.4" stroke-linejoin="round"/>` +
+    // tank
+    `<path d="M32 -62 Q60 -80 92 -64 Q96 -50 82 -46 L40 -46 Q28 -52 32 -62 Z" fill="${GREEN}" stroke="${INK}" stroke-width="2.6" stroke-linejoin="round"/>` +
+    `<path d="M40 -64 Q60 -74 84 -64" fill="none" stroke="${GREEN_HI}" stroke-width="3" stroke-linecap="round"/>` +
+    `<path d="M44 -56 Q62 -62 82 -55" fill="none" stroke="#f1e6c8" stroke-width="2" stroke-linecap="round"/>` +
+    // fork and front fender
+    `<line x1="96" y1="-66" x2="100" y2="-24" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>` +
+    `<line x1="96" y1="-66" x2="100" y2="-24" stroke="${CHROME}" stroke-width="4.4" stroke-linecap="round"/>` +
+    `<path d="M80 -40 Q100 -56 122 -38" fill="none" stroke="${INK}" stroke-width="8" stroke-linecap="round"/>` +
+    `<path d="M80 -40 Q100 -56 122 -38" fill="none" stroke="${GREEN}" stroke-width="5" stroke-linecap="round"/>` +
+    // headlamp
+    `<circle cx="110" cy="-62" r="10" fill="${CHROME}" stroke="${INK}" stroke-width="2.4"/>` +
+    `<circle cx="112.5" cy="-62" r="7" fill="#fff3a8" stroke="${INK}" stroke-width="1.4"/>` +
+    `<circle cx="102" cy="-52" r="3" fill="#ffb347" stroke="${INK}" stroke-width="1.2"/>` +
+    wheel(0) +
+    wheel(100)
+
+  const person =
+    // leg
+    `<path d="M8 -52 L44 -44 L48 -24" fill="none" stroke="${INK}" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="M8 -52 L44 -44 L48 -24" fill="none" stroke="#3f5f8f" stroke-width="10.4" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="M40 -26 h20 q4 0 4 6 v6 h-24 Z" fill="#7a4a2a" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>` +
+    // torso (jacket)
+    `<path d="M8 -54 L26 -84" fill="none" stroke="${INK}" stroke-width="24" stroke-linecap="round"/>` +
+    `<path d="M8 -54 L26 -84" fill="none" stroke="#5a3a26" stroke-width="20" stroke-linecap="round"/>` +
+    `<path d="M14 -62 L22 -76" fill="none" stroke="#7d5538" stroke-width="3" stroke-linecap="round"/>` +
+    // arm to the bars
+    `<path d="M30 -80 L52 -76 L84 -72" fill="none" stroke="${INK}" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<path d="M30 -80 L52 -76 L84 -72" fill="none" stroke="#5a3a26" stroke-width="8.4" stroke-linecap="round" stroke-linejoin="round"/>` +
+    `<circle cx="86" cy="-72" r="5.4" fill="#1b1d24" stroke="${INK}" stroke-width="1.6"/>` +
+    // handlebar and mirror
+    `<line x1="80" y1="-70" x2="96" y2="-70" stroke="${INK}" stroke-width="4" stroke-linecap="round"/>` +
+    `<line x1="88" y1="-72" x2="82" y2="-92" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>` +
+    `<circle cx="81" cy="-96" r="5.6" fill="#aebdd0" stroke="${INK}" stroke-width="1.8"/>` +
+    // helmet: glossy black, open visor showing the face
+    `<circle cx="40" cy="-103" r="23" fill="#1b1d24" stroke="${INK}" stroke-width="2.6"/>` +
+    `<path d="M56 -120 Q66 -106 58 -90" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" opacity="0.5"/>` +
+    `<ellipse cx="42" cy="-99" rx="17" ry="14" fill="${SKIN}" stroke="${INK}" stroke-width="2"/>` +
+    `<path d="M22 -108 Q40 -128 58 -108" fill="#1b1d24" stroke="${INK}" stroke-width="2"/>` +
+    `<path d="M40 -122 Q56 -118 61 -104" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" opacity="0.4"/>` +
+    eyes +
+    `<circle cx="29" cy="-93" r="2.6" fill="#f0a7a7" opacity="0.7"/><circle cx="51" cy="-93" r="2.6" fill="#f0a7a7" opacity="0.7"/>` +
+    mouth
+
+  return body + person
 }
 
-const sky = (p: number) =>
-  `<defs>` +
-  `<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2a6f86"/><stop offset="0.62" stop-color="#8fbab0"/><stop offset="1" stop-color="#f6c88f"/></linearGradient>` +
-  `<linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8fe0e6"/><stop offset="1" stop-color="#1b86a3"/></linearGradient>` +
-  `<linearGradient id="beam" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff3a8" stop-opacity="0.45"/><stop offset="1" stop-color="#fff3a8" stop-opacity="0"/></linearGradient>` +
-  `</defs>` +
-  `<rect width="${W}" height="400" fill="url(#sky)"/>` +
-  `<circle cx="600" cy="${(40 + p * 0.45).toFixed(1)}" r="16" fill="#ffe0a0" opacity="0.95"/>`
+const sparkle = (x: number, y: number, delay: number) =>
+  `<path d="M${x} ${y - 5} L${x + 1.5} ${y - 1.5} L${x + 5} ${y} L${x + 1.5} ${y + 1.5} L${x} ${y + 5} L${x - 1.5} ${y + 1.5} L${x - 5} ${y} L${x - 1.5} ${y - 1.5} Z" fill="#f2c230" stroke="${INK}" stroke-width="0.8">` +
+  `<animate attributeName="opacity" values="0;1;0" dur="0.8s" begin="${delay}s" repeatCount="indefinite"/></path>`
 
-// Two lit ranges: a bright face on the left of each peak, a shaded face on the right.
-const range = (
-  peaks: [number, number, number][],
-  base: number,
-  lit: string,
-  shade: string,
-  snow: string | null,
-) => {
+const speedLines = () =>
+  [0, 1, 2]
+    .map(
+      i =>
+        `<line x1="-30" y1="${-28 - i * 22}" x2="${-60 - i * 6}" y2="${-28 - i * 22}" stroke="#e8e0cc" stroke-width="2.4" stroke-linecap="round" opacity="0">` +
+        `<animate attributeName="opacity" values="0;0.8;0" dur="0.5s" begin="${i * 0.16}s" repeatCount="indefinite"/>` +
+        `<animateTransform attributeName="transform" type="translate" values="0 0;-18 0" dur="0.5s" begin="${i * 0.16}s" repeatCount="indefinite"/></line>`,
+    )
+    .join('')
+
+const bob = (amp: number, dur: number) =>
+  `<animateTransform attributeName="transform" type="translate" values="0 0;0 ${-amp};0 0;0 ${-amp / 2};0 0" dur="${dur}s" repeatCount="indefinite"/>`
+
+const lowSky = (p: number) =>
+  `<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a3350"/><stop offset="0.7" stop-color="#9a6a78"/><stop offset="1" stop-color="#f1b27f"/></linearGradient></defs>` +
+  `<rect width="${W}" height="400" fill="url(#sky)"/>` +
+  `<circle cx="610" cy="${(36 + p * 0.3).toFixed(1)}" r="14" fill="#ffe0a0" opacity="0.9"/>`
+
+const ridge = (base: number, scale: number) => {
+  const peaks: [number, number, number][] = [
+    [70, 30, 70], [190, 12, 80], [320, 28, 76], [450, 8, 86], [585, 24, 78], [690, 16, 66],
+  ]
   let out = ''
   for (const [x, y, hw] of peaks) {
-    out += `<polygon points="${x},${y} ${x - hw},${base} ${x + hw * 0.1},${base}" fill="${lit}"/>`
-    out += `<polygon points="${x},${y} ${x + hw * 0.1},${base} ${x + hw},${base}" fill="${shade}"/>`
-    if (snow) {
-      const s = Math.min(hw * 0.32, 22)
-      out += `<polygon points="${x},${y} ${x - s * 0.8},${y + s * 1.1} ${x - s * 0.3},${y + s * 0.9} ${x},${y + s * 1.5} ${x + s * 0.4},${y + s * 0.9} ${x + s * 0.9},${y + s}" fill="${snow}"/>`
-    }
+    const yy = base - (base - y) * scale
+    out += `<polygon points="${x},${yy} ${x - hw},${base} ${x + hw * 0.1},${base}" fill="#e3a679"/>`
+    out += `<polygon points="${x},${yy} ${x + hw * 0.1},${base} ${x + hw},${base}" fill="#a96f86"/>`
+    out += `<polygon points="${x},${yy} ${x - 9},${yy + 12} ${x - 2},${yy + 10} ${x + 3},${yy + 15} ${x + 9},${yy + 11}" fill="#fff4de"/>`
   }
 
   return out
 }
 
-const mountains = (base: number) =>
-  range(
-    [[70, 58, 70], [160, 36, 80], [275, 52, 78], [395, 26, 92], [520, 48, 82], [640, 40, 84], [720, 62, 70]],
-    base,
-    '#f2b97c',
-    '#b7788a',
-    '#fff4de',
-  ) +
-  range(
-    [[20, 92, 60], [120, 84, 70], [230, 96, 70], [340, 80, 76], [455, 94, 72], [575, 82, 78], [690, 94, 66]],
-    base,
-    '#d98f6c',
-    '#8a5a72',
-    null,
-  )
+const road = (y: number, w: number, dash: number, isMoving: boolean) =>
+  `<rect x="-10" y="${y - w / 2 - 3}" width="${W + 20}" height="${w + 6}" fill="#4a3a2c"/>` +
+  `<rect x="-10" y="${y - w / 2}" width="${W + 20}" height="${w}" fill="#3a3a40"/>` +
+  `<line x1="-40" y1="${y}" x2="${W + 40}" y2="${y}" stroke="#f2d36b" stroke-width="${dash}" stroke-dasharray="16 14">` +
+  (isMoving ? `<animate attributeName="stroke-dashoffset" from="0" to="30" dur="0.5s" repeatCount="indefinite"/>` : '') +
+  `</line>`
 
-const stupa = (x: number, y: number) =>
-  `<g><rect x="${x - 9}" y="${y - 7}" width="18" height="7" rx="1" fill="#f3ece0" stroke="${INK}" stroke-width="0.7"/>` +
-  `<path d="M${x - 7} ${y - 7} Q${x} ${y - 25} ${x + 7} ${y - 7} Z" fill="#f7f2e8" stroke="${INK}" stroke-width="0.7"/>` +
-  `<rect x="${x - 0.8}" y="${y - 28}" width="1.6" height="9" fill="#d9b45a"/><circle cx="${x}" cy="${y - 29}" r="1.8" fill="#d9b45a"/></g>`
+const label = (x: number, y: number, size: number, anchor: string, text: string) =>
+  `<text x="${x}" y="${y}" font-size="${size}" font-weight="700" text-anchor="${anchor}" fill="#f3e4c8" font-family="system-ui, sans-serif">${text}</text>`
 
-const label = (x: number, y: number, size: number, anchor: string, text: string, fill = '#f3e4c8') =>
-  `<text x="${x}" y="${y}" font-size="${size}" font-weight="700" text-anchor="${anchor}" fill="${fill}" font-family="system-ui, sans-serif">${text}</text>`
-
-const PIX_O = "<path fill=\"#f1ece0\" d=\"M72 0h1v1h-1zM70 1h2v1h-2zM73 1h2v1h-2zM69 2h1v1h-1zM75 2h1v1h-1zM68 3h1v1h-1zM75 3h1v1h-1zM68 4h1v1h-1zM76 4h1v1h-1zM59 5h5v1h-5zM68 5h1v1h-1zM76 5h1v1h-1zM58 6h1v1h-1zM64 6h1v1h-1zM68 6h1v1h-1zM76 6h1v1h-1zM57 7h1v1h-1zM65 7h1v1h-1zM69 7h1v1h-1zM77 7h1v1h-1zM56 8h1v1h-1zM65 8h1v1h-1zM69 8h1v1h-1zM77 8h1v1h-1zM56 9h1v1h-1zM66 9h1v1h-1zM69 9h1v1h-1zM77 9h1v1h-1zM55 10h1v1h-1zM66 10h1v1h-1zM69 10h1v1h-1zM77 10h1v1h-1zM56 11h1v1h-1zM66 11h1v1h-1zM69 11h1v1h-1zM77 11h1v1h-1zM56 12h1v1h-1zM65 12h1v1h-1zM70 12h1v1h-1zM78 12h1v1h-1zM57 13h1v1h-1zM65 13h1v1h-1zM70 13h1v1h-1zM78 13h1v1h-1zM58 14h1v1h-1zM66 14h2v1h-2zM70 14h1v1h-1zM78 14h1v1h-1zM59 15h6v1h-6zM68 15h1v1h-1zM70 15h1v1h-1zM78 15h1v1h-1zM65 16h2v1h-2zM69 16h2v1h-2zM77 16h1v1h-1zM67 17h1v1h-1zM70 17h1v1h-1zM77 17h1v1h-1zM49 18h3v1h-3zM68 18h1v1h-1zM77 18h1v1h-1zM7 19h25v1h-25zM48 19h1v1h-1zM52 19h1v1h-1zM69 19h1v1h-1zM77 19h2v1h-2zM5 20h2v1h-2zM32 20h2v1h-2zM44 20h4v1h-4zM53 20h3v1h-3zM70 20h1v1h-1zM79 20h1v1h-1zM4 21h1v1h-1zM34 21h1v1h-1zM40 21h4v1h-4zM56 21h4v1h-4zM70 21h1v1h-1zM79 21h1v1h-1zM3 22h1v1h-1zM35 22h1v1h-1zM38 22h2v1h-2zM60 22h3v1h-3zM69 22h1v1h-1zM78 22h1v1h-1zM2 23h1v1h-1zM36 23h2v1h-2zM63 23h2v1h-2zM68 23h1v1h-1zM75 23h3v1h-3zM80 23h2v1h-2zM2 24h1v1h-1zM65 24h2v1h-2zM69 24h1v1h-1zM75 24h1v1h-1zM77 24h3v1h-3zM82 24h3v1h-3zM1 25h1v1h-1zM67 25h3v1h-3zM73 25h2v1h-2zM76 25h1v1h-1zM85 25h1v1h-1zM1 26h1v1h-1zM72 26h1v1h-1zM75 26h1v1h-1zM86 26h1v1h-1zM1 27h1v1h-1zM73 27h2v1h-2zM87 27h1v1h-1zM1 28h1v1h-1zM73 28h2v1h-2zM87 28h1v1h-1zM1 29h1v1h-1zM73 29h1v1h-1zM88 29h1v1h-1zM1 30h1v1h-1zM72 30h2v1h-2zM88 30h1v1h-1zM1 31h1v1h-1zM72 31h2v1h-2zM88 31h1v1h-1zM1 32h1v1h-1zM72 32h2v1h-2zM88 32h1v1h-1zM1 33h1v1h-1zM72 33h2v1h-2zM88 33h1v1h-1zM1 34h1v1h-1zM72 34h1v1h-1zM74 34h1v1h-1zM88 34h1v1h-1zM1 35h1v1h-1zM72 35h1v1h-1zM74 35h1v1h-1zM87 35h1v1h-1zM2 36h1v1h-1zM71 36h1v1h-1zM75 36h1v1h-1zM86 36h1v1h-1zM2 37h1v1h-1zM71 37h1v1h-1zM75 37h1v1h-1zM85 37h1v1h-1zM3 38h1v1h-1zM71 38h1v1h-1zM74 38h1v1h-1zM83 38h2v1h-2zM3 39h1v1h-1zM71 39h1v1h-1zM74 39h1v1h-1zM80 39h3v1h-3zM3 40h1v1h-1zM71 40h1v1h-1zM75 40h1v1h-1zM79 40h1v1h-1zM4 41h3v1h-3zM10 41h4v1h-4zM71 41h1v1h-1zM76 41h3v1h-3zM7 42h1v1h-1zM11 42h1v1h-1zM13 42h1v1h-1zM54 42h12v1h-12zM70 42h1v1h-1zM6 43h1v1h-1zM11 43h1v1h-1zM14 43h4v1h-4zM24 43h11v1h-11zM54 43h1v1h-1zM64 43h1v1h-1zM70 43h1v1h-1zM6 44h1v1h-1zM11 44h1v1h-1zM17 44h1v1h-1zM24 44h1v1h-1zM33 44h1v1h-1zM38 44h1v1h-1zM54 44h1v1h-1zM64 44h1v1h-1zM70 44h1v1h-1zM4 45h4v1h-4zM10 45h2v1h-2zM17 45h1v1h-1zM24 45h1v1h-1zM33 45h1v1h-1zM55 45h2v1h-2zM59 45h6v1h-6zM70 45h1v1h-1zM3 46h1v1h-1zM12 46h1v1h-1zM16 46h1v1h-1zM25 46h1v1h-1zM33 46h1v1h-1zM57 46h2v1h-2zM70 46h2v1h-2zM2 47h1v1h-1zM13 47h1v1h-1zM16 47h1v1h-1zM19 47h2v1h-2zM25 47h1v1h-1zM32 47h1v1h-1zM72 47h2v1h-2zM2 48h1v1h-1zM13 48h1v1h-1zM16 48h1v1h-1zM19 48h2v1h-2zM25 48h1v1h-1zM32 48h1v1h-1zM74 48h2v1h-2zM2 49h1v1h-1zM13 49h1v1h-1zM15 49h1v1h-1zM19 49h2v1h-2zM26 49h1v1h-1zM32 49h1v1h-1zM76 49h2v1h-2zM2 50h1v1h-1zM13 50h3v1h-3zM19 50h1v1h-1zM21 50h1v1h-1zM26 50h1v1h-1zM32 50h1v1h-1zM78 50h1v1h-1zM2 51h1v1h-1zM18 51h1v1h-1zM21 51h1v1h-1zM27 51h1v1h-1zM32 51h1v1h-1zM79 51h1v1h-1zM3 52h1v1h-1zM19 52h3v1h-3zM27 52h1v1h-1zM32 52h1v1h-1zM80 52h1v1h-1zM4 53h2v1h-2zM21 53h2v1h-2zM27 53h1v1h-1zM32 53h1v1h-1zM81 53h1v1h-1zM4 54h1v1h-1zM22 54h1v1h-1zM28 54h1v1h-1zM33 54h1v1h-1zM81 54h1v1h-1zM3 55h1v1h-1zM23 55h1v1h-1zM28 55h1v1h-1zM33 55h1v1h-1zM76 55h2v1h-2zM80 55h1v1h-1zM2 56h1v1h-1zM28 56h6v1h-6zM77 56h3v1h-3zM1 57h1v1h-1zM24 57h1v1h-1zM28 57h1v1h-1zM77 57h1v1h-1zM1 58h1v1h-1zM78 58h1v1h-1zM1 59h1v1h-1zM78 59h1v1h-1zM0 60h1v1h-1zM78 60h1v1h-1zM0 61h1v1h-1zM31 61h6v1h-6zM78 61h1v1h-1zM0 62h1v1h-1zM78 62h1v1h-1zM0 63h1v1h-1zM50 63h1v1h-1zM78 63h1v1h-1zM0 64h1v1h-1zM78 64h1v1h-1zM0 65h1v1h-1zM51 65h1v1h-1zM78 65h1v1h-1zM0 66h1v1h-1zM77 66h1v1h-1zM1 67h1v1h-1zM77 67h1v1h-1zM1 68h1v1h-1zM51 68h2v1h-2zM76 68h1v1h-1zM2 69h1v1h-1zM24 69h27v1h-27zM53 69h1v1h-1zM76 69h1v1h-1zM2 70h1v1h-1zM23 70h1v1h-1zM53 70h1v1h-1zM75 70h1v1h-1zM3 71h1v1h-1zM22 71h1v1h-1zM54 71h1v1h-1zM74 71h1v1h-1zM4 72h1v1h-1zM21 72h1v1h-1zM55 72h1v1h-1zM73 72h1v1h-1zM5 73h2v1h-2zM20 73h1v1h-1zM56 73h2v1h-2zM72 73h1v1h-1zM7 74h2v1h-2zM18 74h2v1h-2zM58 74h2v1h-2zM70 74h2v1h-2zM9 75h9v1h-9zM60 75h10v1h-10z\"/>"
-const PIX_B = "<path fill=\"#202020\" d=\"M72 1h1v1h-1zM70 2h1v1h-1zM74 2h1v1h-1zM69 3h1v1h-1zM74 3h1v1h-1zM69 4h1v1h-1zM75 4h1v1h-1zM69 5h1v1h-1zM75 5h1v1h-1zM59 6h5v1h-5zM69 6h1v1h-1zM58 7h1v1h-1zM64 7h1v1h-1zM76 7h1v1h-1zM57 8h1v1h-1zM70 8h1v1h-1zM76 8h1v1h-1zM65 9h1v1h-1zM70 9h1v1h-1zM76 9h1v1h-1zM56 10h1v1h-1zM65 10h1v1h-1zM70 10h1v1h-1zM65 11h1v1h-1zM70 11h1v1h-1zM57 12h1v1h-1zM77 12h1v1h-1zM58 13h1v1h-1zM64 13h1v1h-1zM77 13h1v1h-1zM59 14h7v1h-7zM71 14h1v1h-1zM77 14h1v1h-1zM65 15h3v1h-3zM71 15h1v1h-1zM77 15h1v1h-1zM67 16h2v1h-2zM71 16h1v1h-1zM68 17h2v1h-2zM71 17h1v1h-1zM76 17h1v1h-1zM69 18h3v1h-3zM76 18h1v1h-1zM70 19h2v1h-2zM76 19h1v1h-1zM7 20h25v1h-25zM48 20h1v1h-1zM71 20h1v1h-1zM76 20h3v1h-3zM5 21h6v1h-6zM14 21h13v1h-13zM30 21h4v1h-4zM44 21h5v1h-5zM53 21h3v1h-3zM73 21h6v1h-6zM4 22h2v1h-2zM33 22h2v1h-2zM40 22h4v1h-4zM56 22h4v1h-4zM70 22h8v1h-8zM3 23h2v1h-2zM34 23h2v1h-2zM38 23h3v1h-3zM60 23h3v1h-3zM69 23h4v1h-4zM74 23h1v1h-1zM3 24h1v1h-1zM35 24h3v1h-3zM62 24h3v1h-3zM70 24h1v1h-1zM74 24h1v1h-1zM80 24h2v1h-2zM2 25h2v1h-2zM35 25h2v1h-2zM65 25h2v1h-2zM70 25h3v1h-3zM77 25h8v1h-8zM2 26h1v1h-1zM35 26h1v1h-1zM67 26h5v1h-5zM76 26h2v1h-2zM84 26h2v1h-2zM2 27h1v1h-1zM34 27h1v1h-1zM69 27h1v1h-1zM72 27h1v1h-1zM75 27h2v1h-2zM85 27h2v1h-2zM2 28h1v1h-1zM34 28h1v1h-1zM70 28h1v1h-1zM72 28h1v1h-1zM75 28h1v1h-1zM86 28h1v1h-1zM2 29h1v1h-1zM34 29h1v1h-1zM72 29h1v1h-1zM74 29h1v1h-1zM87 29h1v1h-1zM2 30h1v1h-1zM34 30h1v1h-1zM74 30h1v1h-1zM87 30h1v1h-1zM2 31h1v1h-1zM34 31h1v1h-1zM71 31h1v1h-1zM74 31h1v1h-1zM87 31h1v1h-1zM2 32h1v1h-1zM34 32h1v1h-1zM71 32h1v1h-1zM74 32h1v1h-1zM87 32h1v1h-1zM2 33h1v1h-1zM34 33h1v1h-1zM71 33h1v1h-1zM74 33h1v1h-1zM87 33h1v1h-1zM2 34h1v1h-1zM34 34h1v1h-1zM71 34h1v1h-1zM75 34h1v1h-1zM86 34h2v1h-2zM2 35h2v1h-2zM35 35h1v1h-1zM70 35h2v1h-2zM75 35h2v1h-2zM85 35h2v1h-2zM3 36h1v1h-1zM35 36h1v1h-1zM70 36h1v1h-1zM76 36h2v1h-2zM84 36h2v1h-2zM3 37h2v1h-2zM34 37h3v1h-3zM69 37h2v1h-2zM79 37h1v1h-1zM82 37h3v1h-3zM4 38h3v1h-3zM33 38h5v1h-5zM42 38h1v1h-1zM64 38h1v1h-1zM70 38h1v1h-1zM80 38h3v1h-3zM4 39h7v1h-7zM13 39h14v1h-14zM30 39h9v1h-9zM67 39h1v1h-1zM70 39h1v1h-1zM75 39h1v1h-1zM4 40h3v1h-3zM8 40h33v1h-33zM65 40h2v1h-2zM70 40h1v1h-1zM7 41h1v1h-1zM14 41h31v1h-31zM51 41h16v1h-16zM70 41h1v1h-1zM14 42h7v1h-7zM22 42h14v1h-14zM39 42h2v1h-2zM50 42h4v1h-4zM18 43h2v1h-2zM23 43h1v1h-1zM38 43h2v1h-2zM48 43h3v1h-3zM53 43h1v1h-1zM65 43h3v1h-3zM18 44h2v1h-2zM23 44h1v1h-1zM34 44h1v1h-1zM39 44h2v1h-2zM46 44h4v1h-4zM53 44h1v1h-1zM65 44h3v1h-3zM69 44h1v1h-1zM18 45h3v1h-3zM37 45h4v1h-4zM45 45h3v1h-3zM52 45h3v1h-3zM65 45h3v1h-3zM69 45h1v1h-1zM17 46h4v1h-4zM24 46h1v1h-1zM37 46h1v1h-1zM41 46h11v1h-11zM55 46h2v1h-2zM59 46h3v1h-3zM66 46h2v1h-2zM69 46h1v1h-1zM3 47h1v1h-1zM17 47h2v1h-2zM24 47h1v1h-1zM33 47h1v1h-1zM56 47h2v1h-2zM70 47h2v1h-2zM17 48h2v1h-2zM21 48h1v1h-1zM33 48h1v1h-1zM36 48h1v1h-1zM55 48h1v1h-1zM73 48h1v1h-1zM16 49h3v1h-3zM21 49h1v1h-1zM25 49h1v1h-1zM33 49h1v1h-1zM36 49h1v1h-1zM62 49h4v1h-4zM75 49h1v1h-1zM16 50h3v1h-3zM25 50h1v1h-1zM33 50h1v1h-1zM36 50h1v1h-1zM59 50h2v1h-2zM64 50h6v1h-6zM77 50h1v1h-1zM16 51h2v1h-2zM22 51h1v1h-1zM26 51h1v1h-1zM33 51h1v1h-1zM36 51h1v1h-1zM52 51h1v1h-1zM57 51h1v1h-1zM64 51h3v1h-3zM68 51h1v1h-1zM71 51h1v1h-1zM78 51h1v1h-1zM15 52h3v1h-3zM22 52h1v1h-1zM26 52h1v1h-1zM33 52h1v1h-1zM36 52h1v1h-1zM43 52h4v1h-4zM55 52h2v1h-2zM64 52h3v1h-3zM68 52h1v1h-1zM73 52h1v1h-1zM79 52h1v1h-1zM15 53h3v1h-3zM23 53h1v1h-1zM33 53h1v1h-1zM41 53h1v1h-1zM56 53h1v1h-1zM64 53h3v1h-3zM75 53h1v1h-1zM80 53h1v1h-1zM15 54h2v1h-2zM23 54h1v1h-1zM27 54h1v1h-1zM40 54h1v1h-1zM56 54h1v1h-1zM63 54h4v1h-4zM76 54h1v1h-1zM80 54h1v1h-1zM14 55h3v1h-3zM27 55h1v1h-1zM34 55h1v1h-1zM37 55h1v1h-1zM49 55h1v1h-1zM56 55h1v1h-1zM63 55h5v1h-5zM78 55h2v1h-2zM14 56h3v1h-3zM24 56h1v1h-1zM27 56h1v1h-1zM34 56h1v1h-1zM49 56h1v1h-1zM56 56h1v1h-1zM63 56h5v1h-5zM14 57h2v1h-2zM25 57h3v1h-3zM29 57h4v1h-4zM38 57h1v1h-1zM56 57h1v1h-1zM63 57h5v1h-5zM13 58h3v1h-3zM25 58h3v1h-3zM39 58h1v1h-1zM49 58h1v1h-1zM56 58h1v1h-1zM63 58h3v1h-3zM67 58h1v1h-1zM13 59h3v1h-3zM20 59h4v1h-4zM56 59h2v1h-2zM63 59h3v1h-3zM13 60h6v1h-6zM32 60h5v1h-5zM63 60h3v1h-3zM12 61h3v1h-3zM27 61h4v1h-4zM37 61h1v1h-1zM41 61h10v1h-10zM66 61h1v1h-1zM11 62h3v1h-3zM22 62h29v1h-29zM54 62h3v1h-3zM66 62h1v1h-1zM11 63h3v1h-3zM15 63h3v1h-3zM49 63h1v1h-1zM63 63h1v1h-1zM65 63h1v1h-1zM12 64h3v1h-3zM50 64h1v1h-1zM13 65h1v1h-1zM50 65h1v1h-1zM50 66h1v1h-1zM14 67h2v1h-2zM16 68h20v1h-20zM37 68h2v1h-2zM41 68h8v1h-8z\"/><path fill=\"#204040\" d=\"M71 2h1v1h-1zM63 7h1v1h-1zM71 12h1v1h-1zM63 13h1v1h-1zM76 16h1v1h-1zM71 21h2v1h-2zM49 22h1v1h-1zM8 23h3v1h-3zM14 23h13v1h-13zM30 23h2v1h-2zM73 23h1v1h-1zM7 25h1v1h-1zM78 26h1v1h-1zM81 26h2v1h-2zM79 27h2v1h-2zM78 28h1v1h-1zM26 29h1v1h-1zM30 30h1v1h-1zM75 30h1v1h-1zM77 30h1v1h-1zM30 31h1v1h-1zM75 31h1v1h-1zM75 32h1v1h-1zM77 32h1v1h-1zM66 34h1v1h-1zM78 34h1v1h-1zM79 35h1v1h-1zM78 36h1v1h-1zM82 36h2v1h-2zM69 38h1v1h-1zM46 41h4v1h-4zM37 44h1v1h-1zM34 45h1v1h-1zM41 45h1v1h-1zM44 45h1v1h-1zM51 45h1v1h-1zM68 45h1v1h-1zM55 47h1v1h-1zM37 48h1v1h-1zM68 49h1v1h-1zM52 50h1v1h-1zM67 52h1v1h-1zM37 53h1v1h-1zM54 53h1v1h-1zM67 53h1v1h-1zM39 55h1v1h-1zM38 56h1v1h-1zM35 57h1v1h-1zM40 58h1v1h-1zM35 59h1v1h-1zM15 61h1v1h-1zM57 61h1v1h-1zM14 62h1v1h-1zM20 62h1v1h-1zM14 63h1v1h-1zM16 64h1v1h-1zM15 65h3v1h-3zM15 66h2v1h-2z\"/><path fill=\"#406060\" d=\"M72 2h1v1h-1zM70 3h1v1h-1zM76 12h1v1h-1zM76 14h1v1h-1zM49 20h1v1h-1zM49 21h1v1h-1zM37 42h1v1h-1zM41 43h1v1h-1zM41 44h4v1h-4zM51 44h1v1h-1zM46 53h1v1h-1zM49 53h1v1h-1zM34 54h1v1h-1zM48 55h1v1h-1zM53 57h1v1h-1zM31 58h1v1h-1zM33 59h1v1h-1zM22 60h1v1h-1zM17 61h1v1h-1zM24 61h1v1h-1zM40 61h1v1h-1z\"/><path fill=\"#202040\" d=\"M73 2h1v1h-1zM75 6h1v1h-1zM70 7h1v1h-1zM64 8h1v1h-1zM57 9h1v1h-1zM76 10h1v1h-1zM57 11h1v1h-1zM64 12h1v1h-1zM71 13h1v1h-1zM49 19h1v1h-1zM51 19h1v1h-1zM52 20h1v1h-1zM72 20h1v1h-1zM75 20h1v1h-1zM52 21h1v1h-1zM6 22h5v1h-5zM14 22h13v1h-13zM30 22h3v1h-3zM55 22h1v1h-1zM5 23h3v1h-3zM32 23h2v1h-2zM59 23h1v1h-1zM4 24h3v1h-3zM33 24h2v1h-2zM38 24h1v1h-1zM73 24h1v1h-1zM4 25h3v1h-3zM32 25h3v1h-3zM37 25h1v1h-1zM64 25h1v1h-1zM3 26h8v1h-8zM14 26h13v1h-13zM30 26h5v1h-5zM66 26h1v1h-1zM83 26h1v1h-1zM3 27h8v1h-8zM14 27h13v1h-13zM30 27h4v1h-4zM35 27h1v1h-1zM68 27h1v1h-1zM3 28h8v1h-8zM14 28h13v1h-13zM30 28h4v1h-4zM35 28h1v1h-1zM3 29h7v1h-7zM14 29h12v1h-12zM30 29h4v1h-4zM70 29h1v1h-1zM75 29h1v1h-1zM3 30h7v1h-7zM14 30h12v1h-12zM31 30h3v1h-3zM46 30h11v1h-11zM70 30h2v1h-2zM3 31h7v1h-7zM14 31h12v1h-12zM31 31h3v1h-3zM42 31h3v1h-3zM58 31h4v1h-4zM70 31h1v1h-1zM3 32h8v1h-8zM14 32h13v1h-13zM30 32h4v1h-4zM40 32h1v1h-1zM62 32h3v1h-3zM70 32h1v1h-1zM3 33h8v1h-8zM14 33h13v1h-13zM30 33h4v1h-4zM35 33h1v1h-1zM40 33h1v1h-1zM65 33h2v1h-2zM70 33h1v1h-1zM75 33h1v1h-1zM3 34h8v1h-8zM14 34h13v1h-13zM30 34h4v1h-4zM35 34h1v1h-1zM40 34h1v1h-1zM70 34h1v1h-1zM4 35h7v1h-7zM14 35h13v1h-13zM30 35h5v1h-5zM66 35h1v1h-1zM4 36h7v1h-7zM14 36h13v1h-13zM30 36h5v1h-5zM36 36h1v1h-1zM41 36h1v1h-1zM69 36h1v1h-1zM5 37h6v1h-6zM14 37h13v1h-13zM30 37h4v1h-4zM41 37h1v1h-1zM65 37h1v1h-1zM80 37h2v1h-2zM7 38h4v1h-4zM14 38h13v1h-13zM30 38h3v1h-3zM43 38h21v1h-21zM68 38h1v1h-1zM39 39h1v1h-1zM68 39h1v1h-1zM41 40h24v1h-24zM45 41h1v1h-1zM50 41h1v1h-1zM38 42h1v1h-1zM41 42h4v1h-4zM49 42h1v1h-1zM66 42h1v1h-1zM40 43h1v1h-1zM51 43h2v1h-2zM69 43h1v1h-1zM52 44h1v1h-1zM68 44h1v1h-1zM48 45h1v1h-1zM4 46h8v1h-8zM38 46h1v1h-1zM40 46h1v1h-1zM52 46h1v1h-1zM54 46h1v1h-1zM62 46h4v1h-4zM68 46h1v1h-1zM12 47h1v1h-1zM36 47h2v1h-2zM58 47h2v1h-2zM69 47h1v1h-1zM3 48h1v1h-1zM56 48h1v1h-1zM72 48h1v1h-1zM3 49h1v1h-1zM53 49h2v1h-2zM60 49h2v1h-2zM66 49h2v1h-2zM74 49h1v1h-1zM3 50h1v1h-1zM53 50h1v1h-1zM58 50h1v1h-1zM70 50h1v1h-1zM76 50h1v1h-1zM3 51h1v1h-1zM56 51h1v1h-1zM67 51h1v1h-1zM72 51h1v1h-1zM77 51h1v1h-1zM4 52h1v1h-1zM11 52h2v1h-2zM42 52h1v1h-1zM47 52h1v1h-1zM52 52h3v1h-3zM74 52h1v1h-1zM47 53h2v1h-2zM76 53h1v1h-1zM37 54h1v1h-1zM48 54h2v1h-2zM67 54h1v1h-1zM77 54h1v1h-1zM79 54h1v1h-1zM40 55h1v1h-1zM39 56h1v1h-1zM33 57h1v1h-1zM39 57h1v1h-1zM49 57h1v1h-1zM28 58h1v1h-1zM66 58h1v1h-1zM24 59h1v1h-1zM36 59h1v1h-1zM40 59h16v1h-16zM66 59h1v1h-1zM19 60h1v1h-1zM31 60h1v1h-1zM66 60h1v1h-1zM26 61h1v1h-1zM21 62h1v1h-1zM64 63h1v1h-1zM15 64h1v1h-1zM17 64h1v1h-1zM14 65h1v1h-1zM18 65h1v1h-1zM14 66h1v1h-1zM17 66h1v1h-1zM16 67h2v1h-2zM39 68h1v1h-1z\"/><path fill=\"#e0ffff\" d=\"M71 3h2v1h-2zM71 4h3v1h-3zM71 5h3v1h-3zM71 6h4v1h-4zM71 7h4v1h-4zM73 8h2v1h-2zM73 9h2v1h-2zM73 10h3v1h-3zM72 11h1v1h-1zM74 11h2v1h-2zM72 12h1v1h-1zM74 12h2v1h-2zM72 13h1v1h-1zM74 13h2v1h-2zM72 14h1v1h-1zM74 14h2v1h-2zM72 15h1v1h-1zM74 15h2v1h-2zM74 16h2v1h-2zM74 17h1v1h-1zM72 18h1v1h-1zM74 18h1v1h-1zM73 19h2v1h-2z\"/><path fill=\"#c0e0e0\" d=\"M73 3h1v1h-1zM71 8h1v1h-1zM75 9h1v1h-1zM59 10h2v1h-2zM36 43h1v1h-1zM36 44h1v1h-1zM35 45h1v1h-1zM35 46h1v1h-1zM35 47h1v1h-1zM35 52h1v1h-1zM35 53h1v1h-1zM35 54h1v1h-1zM36 56h1v1h-1zM36 57h1v1h-1zM37 58h1v1h-1zM38 59h1v1h-1zM38 60h3v1h-3zM51 60h6v1h-6zM39 65h1v1h-1z\"/><path fill=\"#c0c0e0\" d=\"M70 4h1v1h-1zM61 8h1v1h-1zM58 9h1v1h-1zM61 9h1v1h-1zM74 20h1v1h-1zM44 32h15v1h-15zM42 33h21v1h-21zM42 34h24v1h-24zM42 35h23v1h-23zM43 36h22v1h-22zM43 37h21v1h-21zM68 41h1v1h-1zM35 48h1v1h-1zM34 50h1v1h-1zM35 55h1v1h-1zM41 60h10v1h-10zM64 62h1v1h-1zM39 66h1v1h-1z\"/><path fill=\"#606060\" d=\"M74 4h1v1h-1zM76 13h1v1h-1zM50 20h2v1h-2zM50 21h2v1h-2zM13 24h1v1h-1zM85 28h1v1h-1zM61 32h1v1h-1zM42 37h1v1h-1zM69 41h1v1h-1zM46 42h2v1h-2zM35 43h1v1h-1zM68 43h1v1h-1zM36 46h1v1h-1zM4 47h1v1h-1zM40 50h12v1h-12zM43 53h1v1h-1zM50 53h3v1h-3zM37 56h1v1h-1zM51 57h2v1h-2zM32 58h3v1h-3zM27 59h6v1h-6zM23 60h6v1h-6zM18 61h6v1h-6zM51 61h1v1h-1zM63 61h1v1h-1zM15 62h2v1h-2zM51 62h1v1h-1zM39 63h1v1h-1z\"/><path fill=\"#a0a0c0\" d=\"M70 5h1v1h-1zM60 7h1v1h-1zM75 8h1v1h-1zM49 31h2v1h-2zM63 33h1v1h-1zM42 36h1v1h-1zM35 44h1v1h-1zM35 50h1v1h-1zM34 52h1v1h-1zM36 64h1v1h-1zM36 65h1v1h-1zM36 66h1v1h-1zM39 67h2v1h-2z\"/><path fill=\"#a0c0c0\" d=\"M74 5h1v1h-1zM61 7h1v1h-1zM63 8h1v1h-1zM63 12h1v1h-1zM60 13h2v1h-2zM75 18h1v1h-1zM51 31h2v1h-2zM43 32h1v1h-1zM34 48h1v1h-1zM40 66h1v1h-1z\"/><path fill=\"#606080\" d=\"M70 6h1v1h-1zM59 7h1v1h-1zM75 7h1v1h-1zM72 24h1v1h-1zM71 27h1v1h-1zM71 28h1v1h-1zM56 31h1v1h-1zM64 33h1v1h-1zM42 43h5v1h-5zM34 46h1v1h-1zM44 53h2v1h-2zM42 54h6v1h-6zM41 55h3v1h-3zM46 55h2v1h-2zM41 56h2v1h-2zM47 56h2v1h-2zM41 57h2v1h-2zM47 57h2v1h-2zM41 58h2v1h-2zM47 58h2v1h-2zM38 61h1v1h-1zM18 64h1v1h-1z\"/><path fill=\"#8080a0\" d=\"M62 7h1v1h-1zM58 8h1v1h-1zM64 10h1v1h-1zM58 12h1v1h-1zM47 31h1v1h-1zM60 32h1v1h-1zM41 34h1v1h-1zM69 39h1v1h-1zM67 42h1v1h-1zM37 43h1v1h-1zM34 53h1v1h-1zM44 55h1v1h-1zM35 56h1v1h-1zM46 56h1v1h-1zM46 57h1v1h-1zM36 58h1v1h-1zM43 58h1v1h-1zM65 61h1v1h-1zM53 62h1v1h-1zM49 64h1v1h-1zM18 67h1v1h-1z\"/><path fill=\"#e0e0e0\" d=\"M59 8h2v1h-2zM72 19h1v1h-1zM37 64h1v1h-1zM39 64h1v1h-1zM47 64h2v1h-2zM19 65h17v1h-17zM37 65h2v1h-2zM41 65h9v1h-9zM19 66h17v1h-17zM37 66h2v1h-2zM41 66h8v1h-8z\"/><path fill=\"#a0c0e0\" d=\"M62 8h1v1h-1zM62 9h2v1h-2zM58 10h1v1h-1zM61 10h3v1h-3zM58 11h6v1h-6zM59 12h4v1h-4z\"/><path fill=\"#ffffff\" d=\"M72 8h1v1h-1zM72 9h1v1h-1zM72 10h1v1h-1zM73 11h1v1h-1zM73 12h1v1h-1zM73 13h1v1h-1zM73 14h1v1h-1zM73 15h1v1h-1zM73 16h1v1h-1zM73 17h1v1h-1zM73 18h1v1h-1z\"/><path fill=\"#e0e0ff\" d=\"M59 9h2v1h-2zM72 16h1v1h-1zM72 17h1v1h-1zM75 17h1v1h-1zM19 64h17v1h-17zM38 64h1v1h-1zM41 64h6v1h-6z\"/><path fill=\"#608080\" d=\"M64 9h1v1h-1zM71 10h1v1h-1zM64 11h1v1h-1zM59 13h1v1h-1zM46 31h1v1h-1zM38 58h1v1h-1zM46 58h1v1h-1zM64 61h1v1h-1zM40 63h1v1h-1z\"/><path fill=\"#80a0a0\" d=\"M71 9h1v1h-1zM62 13h1v1h-1zM54 31h1v1h-1zM43 56h3v1h-3zM43 57h3v1h-3zM44 58h2v1h-2zM56 61h1v1h-1zM65 62h1v1h-1zM51 66h1v1h-1z\"/><path fill=\"#404060\" d=\"M57 10h1v1h-1zM71 11h1v1h-1zM76 15h1v1h-1zM50 22h1v1h-1zM52 22h1v1h-1zM54 22h1v1h-1zM41 23h1v1h-1zM58 23h1v1h-1zM7 24h1v1h-1zM32 24h1v1h-1zM71 24h1v1h-1zM13 25h1v1h-1zM77 28h1v1h-1zM76 29h1v1h-1zM76 30h1v1h-1zM45 31h1v1h-1zM76 31h1v1h-1zM76 32h1v1h-1zM76 33h1v1h-1zM77 34h1v1h-1zM79 36h1v1h-1zM36 42h1v1h-1zM45 42h1v1h-1zM48 42h1v1h-1zM69 42h1v1h-1zM50 44h1v1h-1zM38 47h17v1h-17zM38 48h16v1h-16zM38 49h15v1h-15zM38 50h2v1h-2zM38 51h5v1h-5zM47 51h5v1h-5zM38 52h3v1h-3zM49 52h3v1h-3zM36 53h1v1h-1zM38 53h3v1h-3zM38 54h2v1h-2zM41 54h1v1h-1zM50 54h5v1h-5zM51 55h4v1h-4zM51 56h4v1h-4zM40 57h1v1h-1zM50 57h1v1h-1zM54 57h1v1h-1zM30 58h1v1h-1zM51 58h4v1h-4zM26 59h1v1h-1zM21 60h1v1h-1zM29 60h1v1h-1zM37 60h1v1h-1zM57 60h1v1h-1zM17 62h1v1h-1zM63 62h1v1h-1zM18 63h18v1h-18zM37 63h2v1h-2zM41 63h7v1h-7zM50 67h1v1h-1zM49 68h1v1h-1z\"/><path fill=\"#404040\" d=\"M76 11h1v1h-1zM50 19h1v1h-1zM13 22h1v1h-1zM51 22h1v1h-1zM13 23h1v1h-1zM13 26h1v1h-1zM79 26h2v1h-2zM13 27h1v1h-1zM70 27h1v1h-1zM77 27h2v1h-2zM84 27h1v1h-1zM13 28h1v1h-1zM76 28h1v1h-1zM10 29h1v1h-1zM13 29h1v1h-1zM71 29h1v1h-1zM77 29h2v1h-2zM86 29h1v1h-1zM26 30h1v1h-1zM26 31h1v1h-1zM57 31h1v1h-1zM77 31h1v1h-1zM13 32h1v1h-1zM41 32h1v1h-1zM13 33h1v1h-1zM77 33h2v1h-2zM86 33h1v1h-1zM13 34h1v1h-1zM76 34h1v1h-1zM13 35h1v1h-1zM41 35h1v1h-1zM77 35h2v1h-2zM80 35h1v1h-1zM84 35h1v1h-1zM13 36h1v1h-1zM65 36h1v1h-1zM80 36h2v1h-2zM13 37h1v1h-1zM13 38h1v1h-1zM67 40h1v1h-1zM47 43h1v1h-1zM45 44h1v1h-1zM42 45h2v1h-2zM49 45h2v1h-2zM39 46h1v1h-1zM53 46h1v1h-1zM12 48h1v1h-1zM54 48h1v1h-1zM12 49h1v1h-1zM37 49h1v1h-1zM12 50h1v1h-1zM37 50h1v1h-1zM12 51h1v1h-1zM37 51h1v1h-1zM43 51h4v1h-4zM5 52h6v1h-6zM37 52h1v1h-1zM41 52h1v1h-1zM48 52h1v1h-1zM42 53h1v1h-1zM53 53h1v1h-1zM55 53h1v1h-1zM55 54h1v1h-1zM38 55h1v1h-1zM50 55h1v1h-1zM55 55h1v1h-1zM40 56h1v1h-1zM50 56h1v1h-1zM55 56h1v1h-1zM34 57h1v1h-1zM55 57h1v1h-1zM29 58h1v1h-1zM35 58h1v1h-1zM50 58h1v1h-1zM55 58h1v1h-1zM25 59h1v1h-1zM34 59h1v1h-1zM39 59h1v1h-1zM20 60h1v1h-1zM30 60h1v1h-1zM16 61h1v1h-1zM25 61h1v1h-1zM18 62h2v1h-2zM48 63h1v1h-1zM18 66h1v1h-1zM49 67h1v1h-1zM36 68h1v1h-1zM40 68h1v1h-1z\"/><path fill=\"#808080\" d=\"M75 19h1v1h-1zM55 31h1v1h-1zM42 32h1v1h-1zM69 40h1v1h-1zM36 54h1v1h-1zM45 55h1v1h-1zM36 63h1v1h-1z\"/><path fill=\"#c0c0c0\" d=\"M73 20h1v1h-1zM59 32h1v1h-1zM41 33h1v1h-1zM68 40h1v1h-1zM67 41h1v1h-1zM68 42h1v1h-1zM5 47h7v1h-7zM34 49h2v1h-2zM34 51h2v1h-2zM36 55h1v1h-1zM37 57h1v1h-1zM37 59h1v1h-1zM40 64h1v1h-1zM40 65h1v1h-1zM49 66h1v1h-1zM19 67h17v1h-17zM37 67h2v1h-2zM41 67h7v1h-7z\"/><path fill=\"#a08040\" d=\"M11 21h2v1h-2zM28 21h1v1h-1zM11 22h2v1h-2zM28 22h1v1h-1zM11 23h2v1h-2zM28 23h1v1h-1zM11 24h2v1h-2zM28 24h1v1h-1zM11 25h2v1h-2zM28 25h1v1h-1zM11 26h2v1h-2zM28 26h1v1h-1zM11 27h2v1h-2zM28 27h1v1h-1zM11 28h2v1h-2zM28 28h1v1h-1zM11 33h2v1h-2zM28 33h1v1h-1zM11 34h2v1h-2zM28 34h1v1h-1zM11 35h2v1h-2zM28 35h1v1h-1zM11 36h2v1h-2zM28 36h1v1h-1zM11 37h2v1h-2zM28 37h1v1h-1zM11 38h2v1h-2zM28 38h1v1h-1z\"/><path fill=\"#402020\" d=\"M13 21h1v1h-1zM79 38h1v1h-1zM79 39h1v1h-1zM7 40h1v1h-1zM76 40h3v1h-3zM9 41h1v1h-1zM23 45h1v1h-1zM22 50h1v1h-1z\"/><path fill=\"#806040\" d=\"M27 21h1v1h-1zM27 22h1v1h-1zM27 23h1v1h-1zM29 23h1v1h-1zM27 25h1v1h-1zM29 25h1v1h-1zM27 26h1v1h-1zM27 27h1v1h-1zM27 28h1v1h-1zM11 29h2v1h-2zM27 29h2v1h-2zM13 30h1v1h-1zM11 32h2v1h-2zM28 32h1v1h-1zM27 33h1v1h-1zM27 34h1v1h-1zM27 35h1v1h-1zM27 36h1v1h-1zM27 37h1v1h-1zM78 37h1v1h-1zM27 38h1v1h-1zM11 39h2v1h-2zM28 39h1v1h-1z\"/><path fill=\"#604040\" d=\"M29 21h1v1h-1zM10 31h1v1h-1zM27 32h1v1h-1zM29 32h1v1h-1zM27 39h1v1h-1zM9 42h1v1h-1zM10 43h1v1h-1z\"/><path fill=\"#606040\" d=\"M29 22h1v1h-1zM29 26h1v1h-1zM29 27h1v1h-1zM29 28h1v1h-1zM79 28h1v1h-1zM29 29h1v1h-1zM10 30h1v1h-1zM13 31h1v1h-1zM29 33h1v1h-1zM29 34h1v1h-1zM29 35h1v1h-1zM29 36h1v1h-1zM29 37h1v1h-1zM76 37h1v1h-1zM29 38h1v1h-1z\"/><path fill=\"#204060\" d=\"M44 22h1v1h-1zM47 24h6v1h-6zM8 25h3v1h-3zM14 25h13v1h-13zM30 25h2v1h-2zM42 25h16v1h-16zM36 26h2v1h-2zM40 26h21v1h-21zM36 27h27v1h-27zM66 27h2v1h-2zM36 28h34v1h-34zM35 29h35v1h-35zM35 30h11v1h-11zM57 30h13v1h-13zM35 31h7v1h-7zM62 31h8v1h-8zM35 32h5v1h-5zM65 32h5v1h-5zM36 33h4v1h-4zM67 33h3v1h-3zM36 34h4v1h-4zM67 34h3v1h-3zM36 35h5v1h-5zM67 35h3v1h-3zM37 36h4v1h-4zM66 36h3v1h-3zM37 37h4v1h-4zM66 37h3v1h-3zM38 38h4v1h-4zM65 38h3v1h-3zM40 39h27v1h-27zM60 47h9v1h-9zM57 48h15v1h-15zM55 49h5v1h-5zM69 49h5v1h-5zM54 50h4v1h-4zM71 50h5v1h-5zM53 51h3v1h-3zM73 51h4v1h-4zM75 52h4v1h-4zM77 53h3v1h-3zM78 54h1v1h-1z\"/><path fill=\"#406080\" d=\"M45 22h1v1h-1zM53 22h1v1h-1zM8 24h3v1h-3zM14 24h13v1h-13zM30 24h2v1h-2zM39 24h1v1h-1zM45 24h1v1h-1zM53 24h1v1h-1zM61 24h1v1h-1zM38 26h2v1h-2zM65 26h1v1h-1zM63 27h1v1h-1zM65 27h1v1h-1z\"/><path fill=\"#4060a0\" d=\"M46 22h1v1h-1zM44 24h1v1h-1zM54 24h1v1h-1zM41 25h1v1h-1zM58 25h1v1h-1zM63 25h1v1h-1zM61 26h1v1h-1z\"/><path fill=\"#6080a0\" d=\"M47 22h1v1h-1zM42 23h1v1h-1zM50 23h1v1h-1zM57 23h1v1h-1zM55 24h1v1h-1zM64 27h1v1h-1z\"/><path fill=\"#6060a0\" d=\"M48 22h1v1h-1z\"/><path fill=\"#80a0e0\" d=\"M43 23h6v1h-6zM52 23h4v1h-4zM41 24h2v1h-2zM57 24h3v1h-3zM39 25h1v1h-1zM60 25h2v1h-2zM63 26h2v1h-2z\"/><path fill=\"#6080c0\" d=\"M49 23h1v1h-1zM51 23h1v1h-1zM43 24h1v1h-1zM56 24h1v1h-1zM60 24h1v1h-1zM38 25h1v1h-1zM59 25h1v1h-1z\"/><path fill=\"#60a0c0\" d=\"M56 23h1v1h-1zM62 26h1v1h-1z\"/><path fill=\"#806060\" d=\"M27 24h1v1h-1zM29 24h1v1h-1z\"/><path fill=\"#80a0c0\" d=\"M40 24h1v1h-1zM40 25h1v1h-1zM62 25h1v1h-1z\"/><path fill=\"#204080\" d=\"M46 24h1v1h-1z\"/><path fill=\"#808060\" d=\"M81 27h1v1h-1zM83 27h1v1h-1zM78 30h1v1h-1zM79 34h1v1h-1zM85 34h1v1h-1z\"/><path fill=\"#a0a060\" d=\"M82 27h1v1h-1zM86 30h1v1h-1zM78 31h1v1h-1zM86 32h1v1h-1zM81 35h1v1h-1zM83 35h1v1h-1z\"/><path fill=\"#ffe080\" d=\"M80 28h5v1h-5zM79 29h3v1h-3zM85 29h1v1h-1zM79 30h3v1h-3zM79 31h3v1h-3zM79 32h4v1h-4zM85 32h1v1h-1zM79 33h7v1h-7zM80 34h5v1h-5z\"/><path fill=\"#ffe0a0\" d=\"M82 29h1v1h-1zM85 30h1v1h-1zM85 31h1v1h-1zM83 32h2v1h-2z\"/><path fill=\"#ffffe0\" d=\"M83 29h1v1h-1zM82 30h3v1h-3zM83 31h2v1h-2zM5 48h7v1h-7zM5 49h7v1h-7zM5 50h7v1h-7zM5 51h7v1h-7z\"/><path fill=\"#ffffc0\" d=\"M84 29h1v1h-1zM82 31h1v1h-1z\"/><path fill=\"#e0c060\" d=\"M11 30h2v1h-2zM27 30h3v1h-3z\"/><path fill=\"#c0a060\" d=\"M11 31h2v1h-2zM27 31h3v1h-3z\"/><path fill=\"#a0a0a0\" d=\"M48 31h1v1h-1zM53 31h1v1h-1zM65 35h1v1h-1zM64 37h1v1h-1zM36 45h1v1h-1zM34 47h1v1h-1zM4 48h1v1h-1zM4 49h1v1h-1zM4 50h1v1h-1zM4 51h1v1h-1zM39 61h1v1h-1zM52 61h4v1h-4zM52 62h1v1h-1zM52 63h2v1h-2zM52 64h3v1h-3zM52 65h3v1h-3zM52 66h2v1h-2zM36 67h1v1h-1zM48 67h1v1h-1zM51 67h2v1h-2zM50 68h1v1h-1z\"/><path fill=\"#c0c080\" d=\"M86 31h1v1h-1zM82 35h1v1h-1z\"/><path fill=\"#a08060\" d=\"M78 32h1v1h-1z\"/><path fill=\"#e0a040\" d=\"M77 37h1v1h-1zM76 38h1v1h-1zM8 44h1v1h-1z\"/><path fill=\"#404020\" d=\"M75 38h1v1h-1zM8 42h1v1h-1zM10 42h1v1h-1zM21 42h1v1h-1zM7 43h1v1h-1zM20 43h1v1h-1zM7 44h1v1h-1zM8 45h2v1h-2zM21 47h1v1h-1zM24 48h1v1h-1zM26 53h1v1h-1zM24 55h1v1h-1z\"/><path fill=\"#ffc040\" d=\"M77 38h2v1h-2zM77 39h1v1h-1zM8 43h2v1h-2zM9 44h1v1h-1z\"/><path fill=\"#604020\" d=\"M29 39h1v1h-1zM22 43h1v1h-1zM10 44h1v1h-1zM20 44h1v1h-1zM23 52h1v1h-1z\"/><path fill=\"#a06040\" d=\"M76 39h1v1h-1z\"/><path fill=\"#c08040\" d=\"M78 39h1v1h-1z\"/><path fill=\"#602020\" d=\"M8 41h1v1h-1z\"/><path fill=\"#e08020\" d=\"M21 43h1v1h-1zM21 44h1v1h-1zM21 45h2v1h-2zM22 46h1v1h-1zM22 47h1v1h-1zM23 48h1v1h-1zM23 49h1v1h-1zM23 50h2v1h-2zM24 51h1v1h-1zM24 52h1v1h-1zM24 53h2v1h-2zM25 54h1v1h-1zM25 55h2v1h-2zM26 56h1v1h-1z\"/><path fill=\"#a06020\" d=\"M22 44h1v1h-1zM21 46h1v1h-1zM24 49h1v1h-1zM23 51h1v1h-1zM24 54h1v1h-1zM26 54h1v1h-1z\"/><path fill=\"#806020\" d=\"M23 46h1v1h-1zM22 49h1v1h-1z\"/><path fill=\"#c08020\" d=\"M23 47h1v1h-1zM22 48h1v1h-1zM25 52h1v1h-1zM25 56h1v1h-1z\"/><path fill=\"#804020\" d=\"M25 51h1v1h-1z\"/>"
-const PIX_A = "<path fill=\"#202020\" d=\"M64 48h1v1h-1zM60 49h10v1h-10zM58 50h14v1h-14zM9 51h8v1h-8zM56 51h17v1h-17zM7 52h12v1h-12zM55 52h6v1h-6zM68 52h6v1h-6zM6 53h15v1h-15zM54 53h5v1h-5zM70 53h5v1h-5zM5 54h6v1h-6zM15 54h7v1h-7zM53 54h5v1h-5zM71 54h5v1h-5zM4 55h5v1h-5zM18 55h5v1h-5zM53 55h4v1h-4zM72 55h4v1h-4zM3 56h4v1h-4zM19 56h5v1h-5zM52 56h4v1h-4zM73 56h4v1h-4zM2 57h4v1h-4zM20 57h4v1h-4zM52 57h4v1h-4zM74 57h3v1h-3zM2 58h4v1h-4zM21 58h4v1h-4zM52 58h3v1h-3zM74 58h4v1h-4zM2 59h3v1h-3zM21 59h4v1h-4zM51 59h4v1h-4zM74 59h4v1h-4zM1 60h4v1h-4zM22 60h3v1h-3zM51 60h4v1h-4zM75 60h3v1h-3zM1 61h4v1h-4zM22 61h3v1h-3zM51 61h4v1h-4zM71 61h1v1h-1zM75 61h3v1h-3zM1 62h3v1h-3zM22 62h4v1h-4zM51 62h4v1h-4zM75 62h3v1h-3zM1 63h3v1h-3zM19 63h1v1h-1zM22 63h4v1h-4zM51 63h4v1h-4zM75 63h3v1h-3zM1 64h3v1h-3zM22 64h3v1h-3zM51 64h4v1h-4zM74 64h4v1h-4zM1 65h4v1h-4zM22 65h3v1h-3zM52 65h3v1h-3zM74 65h4v1h-4zM1 66h4v1h-4zM21 66h4v1h-4zM52 66h4v1h-4zM74 66h3v1h-3zM2 67h4v1h-4zM21 67h4v1h-4zM52 67h4v1h-4zM73 67h4v1h-4zM2 68h4v1h-4zM20 68h4v1h-4zM53 68h4v1h-4zM72 68h4v1h-4zM3 69h4v1h-4zM19 69h5v1h-5zM54 69h4v1h-4zM71 69h5v1h-5zM3 70h5v1h-5zM18 70h5v1h-5zM54 70h5v1h-5zM70 70h5v1h-5zM4 71h6v1h-6zM16 71h6v1h-6zM55 71h7v1h-7zM68 71h6v1h-6zM5 72h16v1h-16zM56 72h17v1h-17zM7 73h13v1h-13zM58 73h14v1h-14zM9 74h9v1h-9zM60 74h10v1h-10z\"/><path fill=\"#202040\" d=\"M61 52h1v1h-1zM67 52h1v1h-1zM59 53h1v1h-1zM11 54h4v1h-4zM17 55h1v1h-1zM7 56h1v1h-1zM56 56h1v1h-1zM6 57h1v1h-1zM73 57h1v1h-1zM55 58h1v1h-1zM21 60h1v1h-1zM74 60h1v1h-1zM74 61h1v1h-1zM4 62h1v1h-1zM19 62h1v1h-1zM71 62h1v1h-1zM74 62h1v1h-1zM4 63h1v1h-1zM74 63h1v1h-1zM4 64h1v1h-1zM55 65h1v1h-1zM73 66h1v1h-1zM56 67h1v1h-1zM8 70h1v1h-1zM59 70h1v1h-1zM10 71h1v1h-1zM15 71h1v1h-1zM67 71h1v1h-1z\"/><path fill=\"#404040\" d=\"M62 52h1v1h-1zM69 53h1v1h-1zM58 54h1v1h-1zM9 55h1v1h-1zM57 55h1v1h-1zM67 55h2v1h-2zM61 56h1v1h-1zM69 56h1v1h-1zM14 57h1v1h-1zM16 57h1v1h-1zM59 57h2v1h-2zM17 58h1v1h-1zM70 58h2v1h-2zM5 59h1v1h-1zM59 59h1v1h-1zM69 59h2v1h-2zM8 60h1v1h-1zM66 60h1v1h-1zM71 60h1v1h-1zM14 61h1v1h-1zM62 61h1v1h-1zM72 61h1v1h-1zM7 62h1v1h-1zM15 62h1v1h-1zM62 62h1v1h-1zM72 62h1v1h-1zM15 63h1v1h-1zM57 63h1v1h-1zM63 63h1v1h-1zM71 63h1v1h-1zM11 64h1v1h-1zM19 64h1v1h-1zM69 64h2v1h-2zM18 65h1v1h-1zM70 65h2v1h-2zM59 66h2v1h-2zM8 67h1v1h-1zM59 67h1v1h-1zM61 67h1v1h-1zM69 67h1v1h-1zM12 68h1v1h-1zM57 68h1v1h-1zM67 68h2v1h-2zM7 69h1v1h-1zM17 70h1v1h-1zM11 71h1v1h-1zM66 71h1v1h-1z\"/><path fill=\"#406060\" d=\"M63 52h1v1h-1zM60 55h1v1h-1zM9 58h1v1h-1zM15 58h1v1h-1zM68 58h1v1h-1zM11 59h2v1h-2zM63 59h1v1h-1zM67 59h1v1h-1zM12 60h2v1h-2zM61 60h2v1h-2zM67 60h1v1h-1zM70 60h1v1h-1zM19 61h1v1h-1zM21 61h1v1h-1zM61 61h1v1h-1zM68 61h1v1h-1zM59 62h1v1h-1zM61 62h1v1h-1zM7 63h1v1h-1zM9 63h2v1h-2zM61 63h2v1h-2zM67 63h1v1h-1zM15 64h1v1h-1zM55 64h1v1h-1zM63 64h1v1h-1zM67 64h1v1h-1zM71 64h1v1h-1zM14 65h2v1h-2zM60 65h1v1h-1zM65 65h1v1h-1zM68 65h1v1h-1zM18 66h1v1h-1zM67 66h1v1h-1zM72 67h1v1h-1zM60 68h1v1h-1zM70 69h1v1h-1zM12 71h1v1h-1zM65 71h1v1h-1z\"/><path fill=\"#606080\" d=\"M64 52h1v1h-1zM62 54h1v1h-1zM67 54h1v1h-1zM16 55h1v1h-1zM71 55h1v1h-1zM13 56h1v1h-1zM9 57h1v1h-1zM58 57h1v1h-1zM61 57h1v1h-1zM65 57h2v1h-2zM11 58h2v1h-2zM16 58h1v1h-1zM61 58h2v1h-2zM69 58h1v1h-1zM73 58h1v1h-1zM7 59h1v1h-1zM14 59h3v1h-3zM18 59h1v1h-1zM60 59h2v1h-2zM16 60h2v1h-2zM68 60h2v1h-2zM8 61h1v1h-1zM69 61h1v1h-1zM8 62h1v1h-1zM21 62h1v1h-1zM69 62h1v1h-1zM6 63h1v1h-1zM17 63h1v1h-1zM21 63h1v1h-1zM65 63h1v1h-1zM69 63h1v1h-1zM6 64h1v1h-1zM8 64h2v1h-2zM60 64h2v1h-2zM9 65h1v1h-1zM16 65h2v1h-2zM19 65h1v1h-1zM57 65h1v1h-1zM61 65h2v1h-2zM69 65h1v1h-1zM10 66h1v1h-1zM15 66h2v1h-2zM56 66h1v1h-1zM58 66h1v1h-1zM61 66h1v1h-1zM65 66h2v1h-2zM12 67h2v1h-2zM15 67h2v1h-2zM18 67h1v1h-1zM9 68h1v1h-1zM17 68h1v1h-1zM19 68h1v1h-1zM71 68h1v1h-1zM15 69h1v1h-1zM18 69h1v1h-1zM62 69h1v1h-1zM9 70h1v1h-1z\"/><path fill=\"#606060\" d=\"M65 52h1v1h-1zM60 53h1v1h-1zM64 54h1v1h-1zM70 54h1v1h-1zM62 55h1v1h-1zM64 55h1v1h-1zM66 55h1v1h-1zM14 56h1v1h-1zM60 56h1v1h-1zM64 56h1v1h-1zM66 56h1v1h-1zM68 56h1v1h-1zM70 56h1v1h-1zM72 56h1v1h-1zM11 57h1v1h-1zM13 57h1v1h-1zM62 57h1v1h-1zM67 57h1v1h-1zM70 57h1v1h-1zM57 58h1v1h-1zM59 58h2v1h-2zM63 58h3v1h-3zM8 59h1v1h-1zM13 59h1v1h-1zM55 59h1v1h-1zM57 59h1v1h-1zM62 59h1v1h-1zM66 59h1v1h-1zM71 59h1v1h-1zM11 60h1v1h-1zM14 60h2v1h-2zM19 60h1v1h-1zM59 60h1v1h-1zM72 60h1v1h-1zM7 61h1v1h-1zM9 61h2v1h-2zM12 61h1v1h-1zM15 61h1v1h-1zM18 61h1v1h-1zM59 61h2v1h-2zM67 61h1v1h-1zM6 62h1v1h-1zM10 62h1v1h-1zM16 62h2v1h-2zM60 62h1v1h-1zM67 62h1v1h-1zM11 63h1v1h-1zM16 63h1v1h-1zM59 63h1v1h-1zM68 63h1v1h-1zM70 63h1v1h-1zM72 63h1v1h-1zM10 64h1v1h-1zM16 64h1v1h-1zM18 64h1v1h-1zM21 64h1v1h-1zM57 64h1v1h-1zM62 64h1v1h-1zM66 64h1v1h-1zM10 65h2v1h-2zM59 65h1v1h-1zM63 65h2v1h-2zM73 65h1v1h-1zM8 66h2v1h-2zM12 66h3v1h-3zM17 66h1v1h-1zM62 66h1v1h-1zM70 66h1v1h-1zM10 67h1v1h-1zM60 67h1v1h-1zM64 67h1v1h-1zM66 67h1v1h-1zM68 67h1v1h-1zM70 67h1v1h-1zM11 68h1v1h-1zM13 68h1v1h-1zM62 68h1v1h-1zM64 68h1v1h-1zM66 68h1v1h-1zM11 69h1v1h-1zM13 69h1v1h-1zM64 69h1v1h-1zM60 70h1v1h-1zM13 71h1v1h-1zM64 71h1v1h-1z\"/><path fill=\"#404060\" d=\"M66 52h1v1h-1zM66 54h1v1h-1zM12 56h1v1h-1zM18 56h1v1h-1zM62 56h2v1h-2zM15 57h1v1h-1zM19 57h1v1h-1zM68 57h1v1h-1zM8 58h1v1h-1zM10 58h1v1h-1zM66 58h1v1h-1zM9 59h1v1h-1zM17 59h1v1h-1zM58 59h1v1h-1zM64 59h2v1h-2zM10 60h1v1h-1zM58 60h1v1h-1zM63 60h1v1h-1zM11 61h1v1h-1zM16 61h1v1h-1zM57 61h2v1h-2zM66 61h1v1h-1zM70 61h1v1h-1zM9 62h1v1h-1zM11 62h1v1h-1zM18 62h1v1h-1zM57 62h2v1h-2zM66 62h1v1h-1zM68 62h1v1h-1zM70 62h1v1h-1zM18 63h1v1h-1zM58 63h1v1h-1zM66 63h1v1h-1zM7 64h1v1h-1zM14 64h1v1h-1zM58 64h1v1h-1zM64 64h2v1h-2zM7 65h2v1h-2zM12 65h2v1h-2zM66 65h1v1h-1zM5 66h1v1h-1zM7 66h1v1h-1zM11 66h1v1h-1zM68 66h1v1h-1zM9 67h1v1h-1zM20 67h1v1h-1zM62 67h2v1h-2zM14 68h3v1h-3zM66 69h1v1h-1zM14 71h1v1h-1zM63 71h1v1h-1z\"/><path fill=\"#a0a0a0\" d=\"M61 53h1v1h-1zM59 54h1v1h-1zM68 54h1v1h-1zM17 56h1v1h-1zM57 56h1v1h-1zM57 57h1v1h-1zM19 59h1v1h-1zM56 59h1v1h-1zM64 60h1v1h-1zM5 61h1v1h-1zM20 62h1v1h-1zM5 64h1v1h-1zM56 64h1v1h-1zM57 67h1v1h-1zM8 69h1v1h-1zM10 70h1v1h-1zM13 70h1v1h-1zM64 70h1v1h-1zM67 70h1v1h-1z\"/><path fill=\"#a0c0c0\" d=\"M62 53h1v1h-1zM60 54h1v1h-1zM69 54h1v1h-1zM12 55h1v1h-1zM14 55h1v1h-1zM70 55h1v1h-1zM9 56h1v1h-1zM71 56h1v1h-1zM18 57h1v1h-1zM56 58h1v1h-1zM6 59h1v1h-1zM73 60h1v1h-1zM73 61h1v1h-1zM73 62h1v1h-1zM56 65h1v1h-1zM71 67h1v1h-1zM18 68h1v1h-1zM70 68h1v1h-1zM60 69h1v1h-1zM11 70h2v1h-2zM62 70h2v1h-2zM65 70h1v1h-1z\"/><path fill=\"#a0a0c0\" d=\"M63 53h1v1h-1zM65 53h1v1h-1zM67 53h1v1h-1zM11 55h1v1h-1zM13 55h1v1h-1zM58 55h1v1h-1zM16 56h1v1h-1zM8 57h1v1h-1zM72 57h1v1h-1zM7 58h1v1h-1zM19 58h1v1h-1zM72 58h1v1h-1zM20 60h1v1h-1zM20 61h1v1h-1zM5 62h1v1h-1zM14 62h1v1h-1zM5 63h1v1h-1zM73 63h1v1h-1zM13 64h1v1h-1zM20 64h1v1h-1zM20 65h1v1h-1zM72 65h1v1h-1zM57 66h1v1h-1zM72 66h1v1h-1zM19 67h1v1h-1zM7 68h1v1h-1zM58 68h1v1h-1zM9 69h1v1h-1zM17 69h1v1h-1zM68 69h2v1h-2zM15 70h1v1h-1z\"/><path fill=\"#80a0a0\" d=\"M64 53h1v1h-1zM15 55h1v1h-1zM10 56h1v1h-1zM73 59h1v1h-1zM6 60h1v1h-1zM56 60h1v1h-1zM20 63h1v1h-1zM56 63h1v1h-1zM20 66h1v1h-1zM7 67h1v1h-1zM58 67h1v1h-1zM8 68h1v1h-1zM59 68h1v1h-1zM16 69h1v1h-1zM59 69h1v1h-1zM61 70h1v1h-1z\"/><path fill=\"#c0c0c0\" d=\"M66 53h1v1h-1zM63 61h1v1h-1zM63 62h1v1h-1zM14 63h1v1h-1zM6 66h1v1h-1zM14 70h1v1h-1zM66 70h1v1h-1z\"/><path fill=\"#808080\" d=\"M68 53h1v1h-1zM10 55h1v1h-1zM15 56h1v1h-1zM71 57h1v1h-1zM18 58h1v1h-1zM20 59h1v1h-1zM72 59h1v1h-1zM55 60h1v1h-1zM13 61h1v1h-1zM56 61h1v1h-1zM56 62h1v1h-1zM55 63h1v1h-1zM72 64h1v1h-1zM5 65h1v1h-1zM71 66h1v1h-1zM69 68h1v1h-1zM61 69h1v1h-1z\"/><path fill=\"#608080\" d=\"M61 54h1v1h-1zM69 55h1v1h-1zM8 56h1v1h-1zM11 56h1v1h-1zM56 57h1v1h-1zM63 57h2v1h-2zM6 58h1v1h-1zM13 58h2v1h-2zM67 58h1v1h-1zM10 59h1v1h-1zM68 59h1v1h-1zM5 60h1v1h-1zM9 60h1v1h-1zM60 60h1v1h-1zM65 60h1v1h-1zM6 61h1v1h-1zM17 61h1v1h-1zM8 63h1v1h-1zM60 63h1v1h-1zM17 64h1v1h-1zM68 64h1v1h-1zM67 65h1v1h-1zM63 66h2v1h-2zM11 67h1v1h-1zM14 67h1v1h-1zM10 69h1v1h-1zM67 69h1v1h-1zM68 70h1v1h-1z\"/><path fill=\"#204040\" d=\"M63 54h1v1h-1zM65 54h1v1h-1zM61 55h1v1h-1zM63 55h1v1h-1zM65 55h1v1h-1zM59 56h1v1h-1zM65 56h1v1h-1zM67 56h1v1h-1zM10 57h1v1h-1zM12 57h1v1h-1zM69 57h1v1h-1zM20 58h1v1h-1zM58 58h1v1h-1zM7 60h1v1h-1zM18 60h1v1h-1zM57 60h1v1h-1zM59 64h1v1h-1zM21 65h1v1h-1zM58 65h1v1h-1zM69 66h1v1h-1zM17 67h1v1h-1zM65 67h1v1h-1zM67 67h1v1h-1zM6 68h1v1h-1zM10 68h1v1h-1zM61 68h1v1h-1zM63 68h1v1h-1zM65 68h1v1h-1zM12 69h1v1h-1zM14 69h1v1h-1zM58 69h1v1h-1zM63 69h1v1h-1zM65 69h1v1h-1zM69 70h1v1h-1zM62 71h1v1h-1z\"/><path fill=\"#8080a0\" d=\"M59 55h1v1h-1zM58 56h1v1h-1zM7 57h1v1h-1zM17 57h1v1h-1zM55 61h1v1h-1zM55 62h1v1h-1zM64 63h1v1h-1zM12 64h1v1h-1zM73 64h1v1h-1zM6 65h1v1h-1zM19 66h1v1h-1zM6 67h1v1h-1zM16 70h1v1h-1z\"/><path fill=\"#c0c0e0\" d=\"M64 61h2v1h-2zM12 62h2v1h-2zM64 62h2v1h-2zM12 63h2v1h-2z\"/>"
-const PIX_C = "<path fill=\"#202020\" d=\"M64 48h1v1h-1zM60 49h10v1h-10zM58 50h14v1h-14zM9 51h8v1h-8zM56 51h17v1h-17zM7 52h12v1h-12zM55 52h6v1h-6zM68 52h6v1h-6zM6 53h15v1h-15zM54 53h5v1h-5zM70 53h5v1h-5zM5 54h6v1h-6zM15 54h7v1h-7zM53 54h5v1h-5zM71 54h5v1h-5zM4 55h5v1h-5zM18 55h5v1h-5zM53 55h4v1h-4zM72 55h4v1h-4zM3 56h4v1h-4zM19 56h5v1h-5zM52 56h4v1h-4zM73 56h4v1h-4zM2 57h4v1h-4zM20 57h4v1h-4zM52 57h4v1h-4zM74 57h3v1h-3zM2 58h4v1h-4zM21 58h4v1h-4zM52 58h3v1h-3zM74 58h4v1h-4zM2 59h3v1h-3zM21 59h4v1h-4zM51 59h4v1h-4zM74 59h4v1h-4zM1 60h4v1h-4zM22 60h3v1h-3zM51 60h4v1h-4zM75 60h3v1h-3zM1 61h4v1h-4zM22 61h3v1h-3zM51 61h4v1h-4zM71 61h1v1h-1zM75 61h3v1h-3zM1 62h3v1h-3zM22 62h4v1h-4zM51 62h4v1h-4zM75 62h3v1h-3zM1 63h3v1h-3zM19 63h1v1h-1zM22 63h4v1h-4zM51 63h4v1h-4zM75 63h3v1h-3zM1 64h3v1h-3zM22 64h3v1h-3zM51 64h4v1h-4zM74 64h4v1h-4zM1 65h4v1h-4zM22 65h3v1h-3zM52 65h3v1h-3zM74 65h4v1h-4zM1 66h4v1h-4zM21 66h4v1h-4zM52 66h4v1h-4zM74 66h3v1h-3zM2 67h4v1h-4zM21 67h4v1h-4zM52 67h4v1h-4zM73 67h4v1h-4zM2 68h4v1h-4zM20 68h4v1h-4zM53 68h4v1h-4zM72 68h4v1h-4zM3 69h4v1h-4zM19 69h5v1h-5zM54 69h4v1h-4zM71 69h5v1h-5zM3 70h5v1h-5zM18 70h5v1h-5zM54 70h5v1h-5zM70 70h5v1h-5zM4 71h6v1h-6zM16 71h6v1h-6zM55 71h7v1h-7zM68 71h6v1h-6zM5 72h16v1h-16zM56 72h17v1h-17zM7 73h13v1h-13zM58 73h14v1h-14zM9 74h9v1h-9zM60 74h10v1h-10z\"/><path fill=\"#202040\" d=\"M61 52h1v1h-1zM67 52h1v1h-1zM59 53h1v1h-1zM11 54h4v1h-4zM17 55h1v1h-1zM7 56h1v1h-1zM56 56h1v1h-1zM6 57h1v1h-1zM73 57h1v1h-1zM55 58h1v1h-1zM21 60h1v1h-1zM74 60h1v1h-1zM74 61h1v1h-1zM4 62h1v1h-1zM71 62h1v1h-1zM74 62h1v1h-1zM4 63h1v1h-1zM74 63h1v1h-1zM4 64h1v1h-1zM55 65h1v1h-1zM73 66h1v1h-1zM56 67h1v1h-1zM8 70h1v1h-1zM59 70h1v1h-1zM10 71h1v1h-1zM15 71h1v1h-1zM67 71h1v1h-1z\"/><path fill=\"#404040\" d=\"M62 52h1v1h-1zM69 53h1v1h-1zM58 54h1v1h-1zM66 54h1v1h-1zM9 55h1v1h-1zM57 55h1v1h-1zM60 55h1v1h-1zM64 56h1v1h-1zM13 57h1v1h-1zM15 57h1v1h-1zM58 57h1v1h-1zM61 57h1v1h-1zM9 58h1v1h-1zM16 58h1v1h-1zM59 58h1v1h-1zM5 59h1v1h-1zM58 59h1v1h-1zM66 60h1v1h-1zM14 61h1v1h-1zM18 61h2v1h-2zM57 61h1v1h-1zM62 61h1v1h-1zM72 61h1v1h-1zM57 62h1v1h-1zM62 62h1v1h-1zM72 62h1v1h-1zM15 63h1v1h-1zM59 63h1v1h-1zM63 63h1v1h-1zM70 63h1v1h-1zM11 64h1v1h-1zM57 64h2v1h-2zM18 66h1v1h-1zM58 66h1v1h-1zM61 66h1v1h-1zM16 67h1v1h-1zM64 67h1v1h-1zM9 68h1v1h-1zM57 68h1v1h-1zM60 68h1v1h-1zM7 69h1v1h-1zM11 69h1v1h-1zM17 70h1v1h-1zM11 71h1v1h-1zM66 71h1v1h-1z\"/><path fill=\"#406060\" d=\"M63 52h1v1h-1zM65 54h1v1h-1zM61 56h1v1h-1zM63 56h1v1h-1zM9 57h1v1h-1zM14 57h1v1h-1zM67 57h1v1h-1zM17 58h1v1h-1zM61 59h1v1h-1zM66 59h1v1h-1zM70 59h1v1h-1zM12 60h2v1h-2zM57 60h1v1h-1zM62 60h1v1h-1zM15 61h1v1h-1zM21 61h1v1h-1zM18 62h1v1h-1zM70 62h1v1h-1zM10 63h1v1h-1zM62 63h1v1h-1zM9 64h1v1h-1zM19 64h1v1h-1zM55 64h1v1h-1zM61 64h1v1h-1zM66 64h1v1h-1zM70 64h1v1h-1zM10 65h1v1h-1zM14 65h1v1h-1zM58 65h1v1h-1zM14 66h2v1h-2zM67 66h1v1h-1zM61 67h1v1h-1zM63 67h1v1h-1zM72 67h1v1h-1zM14 68h1v1h-1zM15 69h1v1h-1zM65 69h1v1h-1zM70 69h1v1h-1zM12 71h1v1h-1zM65 71h1v1h-1z\"/><path fill=\"#606080\" d=\"M64 52h1v1h-1zM16 55h1v1h-1zM69 55h1v1h-1zM71 55h1v1h-1zM11 56h2v1h-2zM14 56h1v1h-1zM70 56h1v1h-1zM62 57h1v1h-1zM64 57h1v1h-1zM66 57h1v1h-1zM8 58h1v1h-1zM11 58h1v1h-1zM13 58h3v1h-3zM66 58h3v1h-3zM71 58h1v1h-1zM73 58h1v1h-1zM9 59h3v1h-3zM15 59h2v1h-2zM60 59h1v1h-1zM68 59h2v1h-2zM9 60h2v1h-2zM17 60h1v1h-1zM19 60h1v1h-1zM60 60h1v1h-1zM72 60h1v1h-1zM16 61h2v1h-2zM60 61h1v1h-1zM6 62h1v1h-1zM17 62h1v1h-1zM21 62h1v1h-1zM59 62h2v1h-2zM17 63h1v1h-1zM21 63h1v1h-1zM60 63h1v1h-1zM65 63h1v1h-1zM72 63h1v1h-1zM17 64h1v1h-1zM60 64h1v1h-1zM68 64h2v1h-2zM8 65h2v1h-2zM15 65h1v1h-1zM17 65h1v1h-1zM66 65h3v1h-3zM71 65h1v1h-1zM9 66h3v1h-3zM56 66h1v1h-1zM62 66h3v1h-3zM66 66h1v1h-1zM13 67h2v1h-2zM17 67h1v1h-1zM67 67h1v1h-1zM10 68h1v1h-1zM19 68h1v1h-1zM69 68h1v1h-1zM71 68h1v1h-1zM18 69h1v1h-1zM67 69h1v1h-1zM9 70h1v1h-1z\"/><path fill=\"#606060\" d=\"M65 52h1v1h-1zM60 53h1v1h-1zM63 54h1v1h-1zM67 54h1v1h-1zM70 54h1v1h-1zM61 55h1v1h-1zM63 55h1v1h-1zM65 55h1v1h-1zM59 56h1v1h-1zM65 56h1v1h-1zM67 56h1v1h-1zM72 56h1v1h-1zM10 57h1v1h-1zM12 57h1v1h-1zM16 57h1v1h-1zM60 57h1v1h-1zM69 57h1v1h-1zM10 58h1v1h-1zM58 58h1v1h-1zM62 58h1v1h-1zM64 58h2v1h-2zM7 59h1v1h-1zM12 59h2v1h-2zM55 59h1v1h-1zM59 59h1v1h-1zM62 59h2v1h-2zM67 59h1v1h-1zM7 60h2v1h-2zM11 60h1v1h-1zM14 60h3v1h-3zM18 60h1v1h-1zM61 60h1v1h-1zM67 60h3v1h-3zM8 61h3v1h-3zM12 61h1v1h-1zM59 61h1v1h-1zM61 61h1v1h-1zM67 61h2v1h-2zM7 62h1v1h-1zM9 62h2v1h-2zM16 62h1v1h-1zM61 62h1v1h-1zM67 62h2v1h-2zM6 63h1v1h-1zM9 63h1v1h-1zM11 63h1v1h-1zM16 63h1v1h-1zM61 63h1v1h-1zM67 63h3v1h-3zM8 64h1v1h-1zM10 64h1v1h-1zM16 64h1v1h-1zM21 64h1v1h-1zM59 64h1v1h-1zM62 64h2v1h-2zM67 64h1v1h-1zM11 65h1v1h-1zM18 65h1v1h-1zM62 65h1v1h-1zM64 65h2v1h-2zM73 65h1v1h-1zM7 66h1v1h-1zM12 66h2v1h-2zM60 66h1v1h-1zM69 66h1v1h-1zM8 67h1v1h-1zM10 67h1v1h-1zM18 67h1v1h-1zM59 67h1v1h-1zM65 67h1v1h-1zM12 68h1v1h-1zM17 68h1v1h-1zM61 68h1v1h-1zM63 68h1v1h-1zM65 68h1v1h-1zM12 69h1v1h-1zM14 69h1v1h-1zM63 69h1v1h-1zM60 70h1v1h-1zM13 71h1v1h-1zM64 71h1v1h-1z\"/><path fill=\"#404060\" d=\"M66 52h1v1h-1zM62 54h1v1h-1zM67 55h2v1h-2zM13 56h1v1h-1zM18 56h1v1h-1zM62 56h1v1h-1zM69 56h1v1h-1zM19 57h1v1h-1zM59 57h1v1h-1zM68 57h1v1h-1zM60 58h1v1h-1zM63 58h1v1h-1zM70 58h1v1h-1zM14 59h1v1h-1zM17 59h1v1h-1zM64 59h2v1h-2zM58 60h2v1h-2zM63 60h1v1h-1zM70 60h2v1h-2zM11 61h1v1h-1zM58 61h1v1h-1zM66 61h1v1h-1zM70 61h1v1h-1zM11 62h1v1h-1zM15 62h1v1h-1zM58 62h1v1h-1zM66 62h1v1h-1zM7 63h1v1h-1zM18 63h1v1h-1zM57 63h2v1h-2zM66 63h1v1h-1zM71 63h1v1h-1zM7 64h1v1h-1zM14 64h2v1h-2zM18 64h1v1h-1zM64 64h2v1h-2zM7 65h1v1h-1zM12 65h2v1h-2zM16 65h1v1h-1zM19 65h1v1h-1zM60 65h1v1h-1zM63 65h1v1h-1zM70 65h1v1h-1zM5 66h1v1h-1zM17 66h1v1h-1zM59 66h1v1h-1zM68 66h1v1h-1zM9 67h1v1h-1zM20 67h1v1h-1zM62 67h1v1h-1zM69 67h1v1h-1zM13 68h1v1h-1zM15 68h2v1h-2zM67 68h2v1h-2zM62 69h1v1h-1zM66 69h1v1h-1zM14 71h1v1h-1zM63 71h1v1h-1z\"/><path fill=\"#a0a0a0\" d=\"M61 53h1v1h-1zM63 53h3v1h-3zM59 54h1v1h-1zM16 56h1v1h-1zM57 56h1v1h-1zM72 58h1v1h-1zM6 60h1v1h-1zM64 60h1v1h-1zM5 61h1v1h-1zM20 62h1v1h-1zM20 63h1v1h-1zM5 64h1v1h-1zM20 64h1v1h-1zM72 65h1v1h-1zM72 66h1v1h-1zM7 67h1v1h-1zM57 67h1v1h-1zM7 68h1v1h-1zM58 68h2v1h-2zM8 69h1v1h-1zM10 70h1v1h-1z\"/><path fill=\"#c0c0c0\" d=\"M62 53h1v1h-1zM13 55h1v1h-1zM63 61h1v1h-1zM73 61h1v1h-1zM63 62h1v1h-1zM73 62h1v1h-1zM14 63h1v1h-1zM20 65h1v1h-1zM11 70h1v1h-1zM62 70h1v1h-1z\"/><path fill=\"#a0a0c0\" d=\"M66 53h1v1h-1zM60 54h1v1h-1zM11 55h1v1h-1zM14 55h1v1h-1zM58 55h1v1h-1zM70 55h1v1h-1zM9 56h1v1h-1zM17 56h1v1h-1zM8 57h1v1h-1zM18 57h1v1h-1zM57 57h1v1h-1zM72 57h1v1h-1zM7 58h1v1h-1zM19 58h1v1h-1zM6 59h1v1h-1zM73 60h1v1h-1zM20 61h1v1h-1zM5 62h1v1h-1zM14 62h1v1h-1zM5 63h1v1h-1zM73 63h1v1h-1zM13 64h1v1h-1zM56 65h1v1h-1zM6 66h1v1h-1zM57 66h1v1h-1zM18 68h1v1h-1zM9 69h1v1h-1zM60 69h1v1h-1zM69 69h1v1h-1zM12 70h3v1h-3zM63 70h3v1h-3zM67 70h1v1h-1z\"/><path fill=\"#a0c0c0\" d=\"M67 53h1v1h-1zM69 54h1v1h-1zM12 55h1v1h-1zM71 56h1v1h-1zM56 58h1v1h-1zM56 59h1v1h-1zM20 60h1v1h-1zM56 64h1v1h-1zM19 67h1v1h-1zM71 67h1v1h-1zM70 68h1v1h-1zM17 69h1v1h-1zM15 70h1v1h-1zM66 70h1v1h-1z\"/><path fill=\"#808080\" d=\"M68 53h1v1h-1zM10 55h1v1h-1zM15 56h1v1h-1zM18 58h1v1h-1zM20 59h1v1h-1zM72 59h1v1h-1zM55 60h1v1h-1zM13 61h1v1h-1zM56 61h1v1h-1zM56 62h1v1h-1zM55 63h1v1h-1zM72 64h1v1h-1zM5 65h1v1h-1zM71 66h1v1h-1zM61 69h1v1h-1z\"/><path fill=\"#608080\" d=\"M61 54h1v1h-1zM8 56h1v1h-1zM56 57h1v1h-1zM63 57h1v1h-1zM65 57h1v1h-1zM71 57h1v1h-1zM6 58h1v1h-1zM12 58h1v1h-1zM57 58h1v1h-1zM61 58h1v1h-1zM5 60h1v1h-1zM65 60h1v1h-1zM6 61h1v1h-1zM69 61h1v1h-1zM8 62h1v1h-1zM69 62h1v1h-1zM8 63h1v1h-1zM6 64h1v1h-1zM57 65h1v1h-1zM61 65h1v1h-1zM16 66h1v1h-1zM65 66h1v1h-1zM11 67h2v1h-2zM15 67h1v1h-1zM70 67h1v1h-1zM10 69h1v1h-1zM68 70h1v1h-1z\"/><path fill=\"#204040\" d=\"M64 54h1v1h-1zM62 55h1v1h-1zM64 55h1v1h-1zM66 55h1v1h-1zM60 56h1v1h-1zM66 56h1v1h-1zM68 56h1v1h-1zM11 57h1v1h-1zM70 57h1v1h-1zM20 58h1v1h-1zM69 58h1v1h-1zM8 59h1v1h-1zM18 59h1v1h-1zM57 59h1v1h-1zM71 59h1v1h-1zM7 61h1v1h-1zM19 62h1v1h-1zM71 64h1v1h-1zM21 65h1v1h-1zM59 65h1v1h-1zM69 65h1v1h-1zM8 66h1v1h-1zM70 66h1v1h-1zM60 67h1v1h-1zM66 67h1v1h-1zM68 67h1v1h-1zM6 68h1v1h-1zM11 68h1v1h-1zM62 68h1v1h-1zM64 68h1v1h-1zM66 68h1v1h-1zM13 69h1v1h-1zM58 69h1v1h-1zM64 69h1v1h-1zM69 70h1v1h-1zM62 71h1v1h-1z\"/><path fill=\"#8080a0\" d=\"M68 54h1v1h-1zM58 56h1v1h-1zM7 57h1v1h-1zM17 57h1v1h-1zM56 60h1v1h-1zM55 61h1v1h-1zM55 62h1v1h-1zM56 63h1v1h-1zM64 63h1v1h-1zM12 64h1v1h-1zM73 64h1v1h-1zM19 66h1v1h-1zM6 67h1v1h-1zM58 67h1v1h-1zM16 69h1v1h-1zM16 70h1v1h-1z\"/><path fill=\"#80a0a0\" d=\"M15 55h1v1h-1zM59 55h1v1h-1zM10 56h1v1h-1zM19 59h1v1h-1zM73 59h1v1h-1zM6 65h1v1h-1zM20 66h1v1h-1zM8 68h1v1h-1zM59 69h1v1h-1zM68 69h1v1h-1zM61 70h1v1h-1z\"/><path fill=\"#c0c0e0\" d=\"M64 61h2v1h-2zM12 62h2v1h-2zM64 62h2v1h-2zM12 63h2v1h-2z\"/>"
-const PIX_X = 13
-const PIX_Y = 74
-
-const bob = (amp: number, dur: number) =>
-  `<animateTransform attributeName="transform" type="translate" values="0 0;0 ${-amp};0 0;0 ${-amp / 2};0 0" dur="${dur}s" repeatCount="indefinite"/>`
-
-const flip = (a: string, b: string) =>
-  `<g><animate attributeName="visibility" values="visible;hidden" calcMode="discrete" dur="0.16s" repeatCount="indefinite"/>${a}</g>` +
-  `<g><animate attributeName="visibility" values="hidden;visible" calcMode="discrete" dur="0.16s" repeatCount="indefinite"/>${b}</g>`
-
-// Pixel bike, rear wheel at x=0, tyres on y=0. Wheels swap two frames to spin.
-const pixBike = (s: number, amp: number) =>
-  `<g transform="scale(${s}) translate(${-PIX_X} ${-PIX_Y})" shape-rendering="crispEdges">` +
-  `<g>${bob(amp, 0.4)}${PIX_O}${flip(PIX_A, PIX_C)}${PIX_B}</g></g>`
-
-const puffs = (s: number) =>
-  [0, 1, 2]
-    .map(
-      i =>
-        `<rect x="-6" y="-6" width="${3 * s}" height="${3 * s}" fill="#cfc3ad" opacity="0">` +
-        `<animate attributeName="x" values="-6;${-40 - i * 10}" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/>` +
-        `<animate attributeName="y" values="-6;${-14 - i * 5}" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/>` +
-        `<animate attributeName="opacity" values="0.7;0" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/></rect>`,
-    )
-    .join('')
-
-const ground = (y: number, w: number) =>
-  `<line x1="-40" y1="${y}" x2="${W + 40}" y2="${y}" stroke="#8a7d6a" stroke-width="1.5" opacity="0.6"/>` +
-  `<line x1="-40" y1="${y + 7}" x2="${W + 40}" y2="${y + 7}" stroke="#d9a441" stroke-width="${w}" stroke-dasharray="16 14" opacity="0.8">` +
-  `<animate attributeName="stroke-dashoffset" from="0" to="30" dur="0.5s" repeatCount="indefinite"/></line>`
-
-// Band above the prompt box. Position along the road = context used.
-const scene = (percent: number) => {
+// The band above the prompt box. The rider's place on the road is context used; mood follows what Claude is doing.
+const scene = (percent: number, mood: Mood) => {
   const p = clamp(percent)
-  const bx = 70 + (p / 100) * (END_X - 70 - 100)
+  const bx = 80 + (p / 100) * (END_X - 80 - 120)
+  const isRolling = mood === 'working'
 
   return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="84" viewBox="0 0 ${W} 84">` +
-    ground(74, 2) +
-    `<g transform="translate(${bx.toFixed(1)} 74)">` + puffs(1) + pixBike(0.8, 1.5) + `</g>` +
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="118" viewBox="0 0 ${W} 118">` +
+    lowSky(p) +
+    ridge(66, 0.55) +
+    `<rect y="66" width="${W}" height="52" fill="#6b5240"/>` +
+    road(98, 26, 2, isRolling) +
+    label(START_X, 114, 8, 'middle', 'LEH') +
+    label(END_X, 114, 8, 'end', 'KHARDUNG LA') +
+    `<g transform="translate(${bx.toFixed(1)} 102) scale(0.58)">` +
+    `<ellipse cx="50" cy="1" rx="76" ry="5" fill="#000" opacity="0.3"/>` +
+    `<g>${mood === 'happy' ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -10;0 0" dur="0.5s" repeatCount="indefinite"/>` : isRolling ? bob(2, 0.4) : ''}` +
+    rider(mood, isRolling) +
+    (mood === 'happy' ? sparkle(-20, -120, 0) + sparkle(120, -110, 0.25) + sparkle(60, -150, 0.5) : '') +
+    (isRolling ? speedLines() : '') +
+    `</g></g>` +
     `</svg>`
   )
 }
 
-// New-chat view: a bigger bike riding across the width on a loop.
+// Fresh chat: the rider rolls across the whole width on a loop.
 const starter = () =>
-  `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="150" viewBox="0 0 ${W} 150">` +
-  ground(130, 3) +
-  `<g><animateTransform attributeName="transform" type="translate" from="-200 0" to="760 0" dur="8s" repeatCount="indefinite"/>` +
-  `<g transform="translate(0 130)">` + puffs(2) + pixBike(1.3, 2.5) + `</g></g>` +
+  `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="190" viewBox="0 0 ${W} 190">` +
+  lowSky(0) +
+  ridge(112, 0.9) +
+  `<rect y="112" width="${W}" height="78" fill="#6b5240"/>` +
+  road(158, 40, 3, true) +
+  label(14, 184, 10, 'start', 'LEH 3,500 m') +
+  label(706, 184, 10, 'end', 'KHARDUNG LA 5,359 m') +
+  `<g><animateTransform attributeName="transform" type="translate" from="-200 0" to="760 0" dur="9s" repeatCount="indefinite"/>` +
+  `<g transform="translate(0 164) scale(0.85)">` +
+  `<ellipse cx="50" cy="1" rx="76" ry="5" fill="#000" opacity="0.3"/>` +
+  `<g>${bob(2.4, 0.4)}` + rider('working', true) + speedLines() + `</g></g></g>` +
   `</svg>`
-
-type Mood = 'idle' | 'working' | 'happy'
-
-// A snow leopard cub. idle: breathes, blinks, slow tail. working: eyes narrowed over a tiny laptop, fast tail, typing dots.
-// happy: hops with sparkles after a turn finishes.
-const pet = (mood: Mood) => {
-  const FUR = '#e6e9f0'
-  const SHADE = '#b7c0d0'
-  const SPOT = '#4a5262'
-  const tailSpeed = mood === 'working' ? '0.5s' : mood === 'happy' ? '0.4s' : '2.4s'
-  const tail =
-    `<g><animateTransform attributeName="transform" type="rotate" values="-10 46 54;14 46 54;-10 46 54" dur="${tailSpeed}" repeatCount="indefinite"/>` +
-    `<path d="M44 56 Q64 56 60 40 Q58 34 54 38" fill="none" stroke="${INK}" stroke-width="9" stroke-linecap="round"/>` +
-    `<path d="M44 56 Q64 56 60 40 Q58 34 54 38" fill="none" stroke="${FUR}" stroke-width="5.6" stroke-linecap="round"/>` +
-    `<path d="M57 50 l3 -2 M59 44 l3 -1" stroke="${SPOT}" stroke-width="1.6" stroke-linecap="round"/></g>`
-
-  const body =
-    `<ellipse cx="32" cy="48" rx="16" ry="12" fill="${FUR}" stroke="${INK}" stroke-width="2.2">` +
-    (mood === 'idle' ? `<animate attributeName="ry" values="12;12.9;12" dur="2.4s" repeatCount="indefinite"/>` : '') +
-    `</ellipse>` +
-    `<path d="M22 44 q3 -2 5 1 M35 43 q3 -2 6 0 M26 52 q2 -2 5 0" fill="none" stroke="${SPOT}" stroke-width="1.8" stroke-linecap="round"/>`
-
-  const paws =
-    `<ellipse cx="24" cy="58.5" rx="6" ry="3.4" fill="${FUR}" stroke="${INK}" stroke-width="2"/>` +
-    `<ellipse cx="40" cy="58.5" rx="6" ry="3.4" fill="${FUR}" stroke="${INK}" stroke-width="2"/>`
-
-  const laptop =
-    mood === 'working'
-      ? `<g><rect x="17" y="49" width="30" height="9" rx="2" fill="#2b3040" stroke="${INK}" stroke-width="1.8"/>` +
-        `<rect x="19.5" y="51" width="25" height="4.4" rx="1" fill="#5ec8d8"><animate attributeName="opacity" values="1;0.55;1" dur="0.5s" repeatCount="indefinite"/></rect>` +
-        `<ellipse cx="25" cy="57.5" rx="4.4" ry="2.8" fill="${FUR}" stroke="${INK}" stroke-width="1.8"><animate attributeName="cy" values="57.5;56;57.5" dur="0.3s" repeatCount="indefinite"/></ellipse>` +
-        `<ellipse cx="39" cy="57.5" rx="4.4" ry="2.8" fill="${FUR}" stroke="${INK}" stroke-width="1.8"><animate attributeName="cy" values="56;57.5;56" dur="0.3s" repeatCount="indefinite"/></ellipse></g>`
-      : ''
-
-  const ears =
-    `<path d="M18 22 L19 8 L30 16 Z" fill="${FUR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>` +
-    `<path d="M46 22 L45 8 L34 16 Z" fill="${FUR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>` +
-    `<path d="M21 17 L21.6 12 L26 15.4 Z" fill="#f0a7a7"/><path d="M43 17 L42.4 12 L38 15.4 Z" fill="#f0a7a7"/>`
-
-  const head =
-    `<circle cx="32" cy="27" r="15.5" fill="${FUR}" stroke="${INK}" stroke-width="2.2"/>` +
-    `<path d="M24 15 q1.6 3 0 5 M32 12.5 q0 3.4 0 5.4 M40 15 q-1.6 3 0 5" fill="none" stroke="${SPOT}" stroke-width="1.8" stroke-linecap="round"/>` +
-    `<ellipse cx="32" cy="33" rx="7" ry="5" fill="#f6f7fa"/>`
-
-  const eyes =
-    mood === 'happy'
-      ? `<path d="M22.5 28 q3.5 -5 7 0 M34.5 28 q3.5 -5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
-      : mood === 'working'
-        ? `<ellipse cx="26.2" cy="28" rx="3" ry="2.2" fill="${INK}"/><ellipse cx="37.8" cy="28" rx="3" ry="2.2" fill="${INK}"/>` +
-          `<circle cx="27" cy="27.3" r="0.9" fill="#fff"/><circle cx="38.6" cy="27.3" r="0.9" fill="#fff"/>`
-        : `<ellipse cx="26.2" cy="28" rx="3" ry="3.6" fill="${INK}"><animate attributeName="ry" values="3.6;3.6;0.4;3.6;3.6" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
-          `<ellipse cx="37.8" cy="28" rx="3" ry="3.6" fill="${INK}"><animate attributeName="ry" values="3.6;3.6;0.4;3.6;3.6" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
-          `<circle cx="27.2" cy="26.6" r="1.1" fill="#fff"/><circle cx="38.8" cy="26.6" r="1.1" fill="#fff"/>`
-
-  const face =
-    `<path d="M30 32 h4 l-2 2.6 Z" fill="#e58a8a" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>` +
-    (mood === 'happy'
-      ? `<path d="M28.5 36 q3.5 4.4 7 0 Z" fill="#a8384a" stroke="${INK}" stroke-width="1.4" stroke-linejoin="round"/>`
-      : `<path d="M32 34.6 q-2 2.6 -4.4 1 M32 34.6 q2 2.6 4.4 1" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`)
-
-  const dots =
-    mood === 'working'
-      ? [0, 1, 2]
-          .map(
-            i =>
-              `<circle cx="${50 + i * 6}" cy="12" r="2.2" fill="#5ec8d8"><animate attributeName="opacity" values="0.2;1;0.2" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/></circle>`,
-          )
-          .join('')
-      : ''
-
-  const sparkles =
-    mood === 'happy'
-      ? [
-          [8, 14],
-          [56, 10],
-          [60, 30],
-        ]
-          .map(
-            ([x, y], i) =>
-              `<path d="M${x} ${y - 4} L${x + 1.2} ${y - 1.2} L${x + 4} ${y} L${x + 1.2} ${y + 1.2} L${x} ${y + 4} L${x - 1.2} ${y + 1.2} L${x - 4} ${y} L${x - 1.2} ${y - 1.2} Z" fill="#f2c230" stroke="${INK}" stroke-width="0.8">` +
-              `<animate attributeName="opacity" values="0;1;0" dur="0.8s" begin="${i * 0.25}s" repeatCount="indefinite"/></path>`,
-          )
-          .join('')
-      : ''
-
-  const hop =
-    mood === 'happy'
-      ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -7;0 0" dur="0.5s" repeatCount="indefinite"/>`
-      : mood === 'working'
-        ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -1;0 0" dur="0.3s" repeatCount="indefinite"/>`
-        : ''
-
-  return (
-    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">` +
-    `<ellipse cx="32" cy="61" rx="18" ry="2.6" fill="#000" opacity="0.22"/>` +
-    `<g>${hop}${tail}${body}${paws}${laptop}${ears}${head}${eyes}${face}${sparkles}</g>` +
-    dots +
-    `</svg>`
-  )
-}
 
 
 export const register: Register = on => {
@@ -517,7 +356,7 @@ export const register: Register = on => {
       'Svg' in ui ? (
         <ui.Svg
           key="scene"
-          source={isFresh ? starter() : scene(percent)}
+          source={isFresh ? starter() : scene(percent, mood)}
           alt={
             isFresh
               ? 'A motorcycle parked on a mountain road at Leh, ready to ride to Khardung La'
@@ -531,23 +370,12 @@ export const register: Register = on => {
         </Text>
       )
 
-    const face = mood === 'working' ? '=^-^= ...' : mood === 'happy' ? '=^o^= !' : '=^.^='
-    const petView =
-      'Svg' in ui ? (
-        <ui.Svg key="pet" source={pet(mood)} alt={`A snow leopard cub, ${mood}`} isInteractive />
-      ) : (
-        <Text key="pet">{face} </Text>
-      )
-
     return (
-      <Box>
-        {petView}
-        <Box flexDirection="column">
-          {picture}
-          <Box>
-            <Text dimColor>{line} </Text>
-            <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
-          </Box>
+      <Box flexDirection="column">
+        {picture}
+        <Box>
+          <Text dimColor>{line} </Text>
+          <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
         </Box>
       </Box>
     )
