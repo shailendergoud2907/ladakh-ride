@@ -5,6 +5,7 @@ import type { Ride } from '../types'
 
 const ride = atom({ plugin: 'ladakh-ride', key: 'ride' } as const, null)
 const isHidden = atom({ plugin: 'ladakh-ride', key: 'isHidden' } as const, false)
+const isHappy = atom({ plugin: 'ladakh-ride', key: 'isHappy' } as const, false)
 const focusLeft = atom({ plugin: 'ladakh-ride', key: 'focusLeft' } as const, null)
 
 const LEH_M = 3500
@@ -289,6 +290,106 @@ const starter = () =>
   `<g transform="translate(0 130)">` + puffs(2) + pixBike(1.3, 2.5) + `</g></g>` +
   `</svg>`
 
+type Mood = 'idle' | 'working' | 'happy'
+
+// A snow leopard cub. idle: breathes, blinks, slow tail. working: eyes narrowed over a tiny laptop, fast tail, typing dots.
+// happy: hops with sparkles after a turn finishes.
+const pet = (mood: Mood) => {
+  const FUR = '#e6e9f0'
+  const SHADE = '#b7c0d0'
+  const SPOT = '#4a5262'
+  const tailSpeed = mood === 'working' ? '0.5s' : mood === 'happy' ? '0.4s' : '2.4s'
+  const tail =
+    `<g><animateTransform attributeName="transform" type="rotate" values="-10 46 54;14 46 54;-10 46 54" dur="${tailSpeed}" repeatCount="indefinite"/>` +
+    `<path d="M44 56 Q64 56 60 40 Q58 34 54 38" fill="none" stroke="${INK}" stroke-width="9" stroke-linecap="round"/>` +
+    `<path d="M44 56 Q64 56 60 40 Q58 34 54 38" fill="none" stroke="${FUR}" stroke-width="5.6" stroke-linecap="round"/>` +
+    `<path d="M57 50 l3 -2 M59 44 l3 -1" stroke="${SPOT}" stroke-width="1.6" stroke-linecap="round"/></g>`
+
+  const body =
+    `<ellipse cx="32" cy="48" rx="16" ry="12" fill="${FUR}" stroke="${INK}" stroke-width="2.2">` +
+    (mood === 'idle' ? `<animate attributeName="ry" values="12;12.9;12" dur="2.4s" repeatCount="indefinite"/>` : '') +
+    `</ellipse>` +
+    `<path d="M22 44 q3 -2 5 1 M35 43 q3 -2 6 0 M26 52 q2 -2 5 0" fill="none" stroke="${SPOT}" stroke-width="1.8" stroke-linecap="round"/>`
+
+  const paws =
+    `<ellipse cx="24" cy="58.5" rx="6" ry="3.4" fill="${FUR}" stroke="${INK}" stroke-width="2"/>` +
+    `<ellipse cx="40" cy="58.5" rx="6" ry="3.4" fill="${FUR}" stroke="${INK}" stroke-width="2"/>`
+
+  const laptop =
+    mood === 'working'
+      ? `<g><rect x="17" y="49" width="30" height="9" rx="2" fill="#2b3040" stroke="${INK}" stroke-width="1.8"/>` +
+        `<rect x="19.5" y="51" width="25" height="4.4" rx="1" fill="#5ec8d8"><animate attributeName="opacity" values="1;0.55;1" dur="0.5s" repeatCount="indefinite"/></rect>` +
+        `<ellipse cx="25" cy="57.5" rx="4.4" ry="2.8" fill="${FUR}" stroke="${INK}" stroke-width="1.8"><animate attributeName="cy" values="57.5;56;57.5" dur="0.3s" repeatCount="indefinite"/></ellipse>` +
+        `<ellipse cx="39" cy="57.5" rx="4.4" ry="2.8" fill="${FUR}" stroke="${INK}" stroke-width="1.8"><animate attributeName="cy" values="56;57.5;56" dur="0.3s" repeatCount="indefinite"/></ellipse></g>`
+      : ''
+
+  const ears =
+    `<path d="M18 22 L19 8 L30 16 Z" fill="${FUR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>` +
+    `<path d="M46 22 L45 8 L34 16 Z" fill="${FUR}" stroke="${INK}" stroke-width="2.2" stroke-linejoin="round"/>` +
+    `<path d="M21 17 L21.6 12 L26 15.4 Z" fill="#f0a7a7"/><path d="M43 17 L42.4 12 L38 15.4 Z" fill="#f0a7a7"/>`
+
+  const head =
+    `<circle cx="32" cy="27" r="15.5" fill="${FUR}" stroke="${INK}" stroke-width="2.2"/>` +
+    `<path d="M24 15 q1.6 3 0 5 M32 12.5 q0 3.4 0 5.4 M40 15 q-1.6 3 0 5" fill="none" stroke="${SPOT}" stroke-width="1.8" stroke-linecap="round"/>` +
+    `<ellipse cx="32" cy="33" rx="7" ry="5" fill="#f6f7fa"/>`
+
+  const eyes =
+    mood === 'happy'
+      ? `<path d="M22.5 28 q3.5 -5 7 0 M34.5 28 q3.5 -5 7 0" fill="none" stroke="${INK}" stroke-width="2.4" stroke-linecap="round"/>`
+      : mood === 'working'
+        ? `<ellipse cx="26.2" cy="28" rx="3" ry="2.2" fill="${INK}"/><ellipse cx="37.8" cy="28" rx="3" ry="2.2" fill="${INK}"/>` +
+          `<circle cx="27" cy="27.3" r="0.9" fill="#fff"/><circle cx="38.6" cy="27.3" r="0.9" fill="#fff"/>`
+        : `<ellipse cx="26.2" cy="28" rx="3" ry="3.6" fill="${INK}"><animate attributeName="ry" values="3.6;3.6;0.4;3.6;3.6" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
+          `<ellipse cx="37.8" cy="28" rx="3" ry="3.6" fill="${INK}"><animate attributeName="ry" values="3.6;3.6;0.4;3.6;3.6" keyTimes="0;0.9;0.94;0.98;1" dur="4s" repeatCount="indefinite"/></ellipse>` +
+          `<circle cx="27.2" cy="26.6" r="1.1" fill="#fff"/><circle cx="38.8" cy="26.6" r="1.1" fill="#fff"/>`
+
+  const face =
+    `<path d="M30 32 h4 l-2 2.6 Z" fill="#e58a8a" stroke="${INK}" stroke-width="1.2" stroke-linejoin="round"/>` +
+    (mood === 'happy'
+      ? `<path d="M28.5 36 q3.5 4.4 7 0 Z" fill="#a8384a" stroke="${INK}" stroke-width="1.4" stroke-linejoin="round"/>`
+      : `<path d="M32 34.6 q-2 2.6 -4.4 1 M32 34.6 q2 2.6 4.4 1" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>`)
+
+  const dots =
+    mood === 'working'
+      ? [0, 1, 2]
+          .map(
+            i =>
+              `<circle cx="${50 + i * 6}" cy="12" r="2.2" fill="#5ec8d8"><animate attributeName="opacity" values="0.2;1;0.2" dur="0.9s" begin="${i * 0.3}s" repeatCount="indefinite"/></circle>`,
+          )
+          .join('')
+      : ''
+
+  const sparkles =
+    mood === 'happy'
+      ? [
+          [8, 14],
+          [56, 10],
+          [60, 30],
+        ]
+          .map(
+            ([x, y], i) =>
+              `<path d="M${x} ${y - 4} L${x + 1.2} ${y - 1.2} L${x + 4} ${y} L${x + 1.2} ${y + 1.2} L${x} ${y + 4} L${x - 1.2} ${y + 1.2} L${x - 4} ${y} L${x - 1.2} ${y - 1.2} Z" fill="#f2c230" stroke="${INK}" stroke-width="0.8">` +
+              `<animate attributeName="opacity" values="0;1;0" dur="0.8s" begin="${i * 0.25}s" repeatCount="indefinite"/></path>`,
+          )
+          .join('')
+      : ''
+
+  const hop =
+    mood === 'happy'
+      ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -7;0 0" dur="0.5s" repeatCount="indefinite"/>`
+      : mood === 'working'
+        ? `<animateTransform attributeName="transform" type="translate" values="0 0;0 -1;0 0" dur="0.3s" repeatCount="indefinite"/>`
+        : ''
+
+  return (
+    `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">` +
+    `<ellipse cx="32" cy="61" rx="18" ry="2.6" fill="#000" opacity="0.22"/>` +
+    `<g>${hop}${tail}${body}${paws}${laptop}${ears}${head}${eyes}${face}${sparkles}</g>` +
+    dots +
+    `</svg>`
+  )
+}
+
 
 export const register: Register = on => {
   let lastBand = 0
@@ -299,8 +400,8 @@ export const register: Register = on => {
       description: 'Show or hide the Ladakh ride above the prompt',
     })
     await $.command.register({
-      name: 'focus',
-      description: '/focus 25 starts a focus timer shown in the ride band, /focus stop cancels it',
+      name: 'ridetimer',
+      description: '/ridetimer 25 starts a focus timer shown in the ride band, /ridetimer stop cancels it',
     })
 
     try {
@@ -322,7 +423,7 @@ export const register: Register = on => {
     done = null
   }
 
-  on('command.run', { command: 'focus' }, async ($, e) => {
+  on('command.run', { command: 'ridetimer' }, async ($, e) => {
     const arg = e.args.trim().toLowerCase()
     if (arg === 'stop') {
       stopFocus()
@@ -333,7 +434,7 @@ export const register: Register = on => {
 
     const minutes = arg === '' ? 25 : Number(arg)
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 240) {
-      return { text: 'Use /focus 25 (minutes, 1 to 240) or /focus stop.' }
+      return { text: 'Use /ridetimer 25 (minutes, 1 to 240) or /ridetimer stop.' }
     }
 
     stopFocus()
@@ -379,6 +480,18 @@ export const register: Register = on => {
     return next(e)
   })
 
+  let happyTimer: { cancel: () => void } | null = null
+  on('turn.complete', async ($, e, next) => {
+    const out = await next(e)
+    if (e.agentId === undefined && !e.isAborted) {
+      happyTimer?.cancel()
+      await update($, isHappy, () => true)
+      happyTimer = $.clock.after(6_000, () => void update($, isHappy, () => false))
+    }
+
+    return out
+  })
+
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
     if (e.props.hasSurvey || (await read($, isHidden))) {
       return next(e)
@@ -386,6 +499,8 @@ export const register: Register = on => {
 
     const state = await read($, ride)
     const focus = await read($, focusLeft)
+    const happy = await read($, isHappy)
+    const mood: Mood = e.props.isWorking ? 'working' : happy ? 'happy' : 'idle'
     const isFresh = state === null || state.tokens === 0
     const percent = state?.percent ?? 0
     const altitude = LEH_M + (percent / 100) * (KHARDUNG_LA_M - LEH_M)
@@ -416,12 +531,23 @@ export const register: Register = on => {
         </Text>
       )
 
+    const face = mood === 'working' ? '=^-^= ...' : mood === 'happy' ? '=^o^= !' : '=^.^='
+    const petView =
+      'Svg' in ui ? (
+        <ui.Svg key="pet" source={pet(mood)} alt={`A snow leopard cub, ${mood}`} isInteractive />
+      ) : (
+        <Text key="pet">{face} </Text>
+      )
+
     return (
-      <Box flexDirection="column">
-        {picture}
-        <Box>
-          <Text dimColor>{line} </Text>
-          <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
+      <Box>
+        {petView}
+        <Box flexDirection="column">
+          {picture}
+          <Box>
+            <Text dimColor>{line} </Text>
+            <Button key="hide" label="Hide" onPress={() => update($, isHidden, () => true)} />
+          </Box>
         </Box>
       </Box>
     )

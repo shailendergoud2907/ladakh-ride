@@ -39,4 +39,4 @@ claude plugin test .
 | ladakh-theme | Ladakh Dusk and Ladakh Glacier colour themes, pick with `/theme` | `/plugin install ladakh-theme --marketplace shailendergoud2907/ladakh-ride` |
 | mba-shortcuts | `/mba-shortcuts:case`, `:pitch`, `:redteam`, `:memo` | `/plugin install mba-shortcuts --marketplace shailendergoud2907/ladakh-ride` |
 
-`/focus 25` now lives inside ladakh-ride and shows in the band.
+`/ridetimer 25` (focus timer) and the snow-leopard pet live inside ladakh-ride and show in the band. The timer is not called `/focus` because that name is built in.

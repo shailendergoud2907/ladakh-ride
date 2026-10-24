@@ -42,11 +42,11 @@ test('waits at Leh before any usage and hides on press', async ($, on) => {
   expect(await ui.find({ type: 'Svg' })).toBeUndefined()
 })
 
-test('/focus shows the minutes left in the band and clears when done', async ($, on) => {
+test('/ridetimer shows the minutes left in the band and clears when done', async ($, on) => {
   const clock = mock.clock(on)
   on('command.run', () => ({ text: '' }) as never)
   on('ui.render', () => NOTHING)
-  await $.command.run({ command: 'focus', args: '5' } as never)
+  await $.command.run({ command: 'ridetimer', args: '5' } as never)
   let ui = await $.ui.mount({ plugin: 'ladakh-ride', surface: 'desktop', component: 'AbovePrompt', props })
   expect(JSON.stringify(await ui.drawn())).toContain('Focus: 5 min left')
   await clock.advance(5 * 60_000 + 1000)
